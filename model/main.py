@@ -2,6 +2,7 @@ import os
 import numpy as np
 import tensorflow as tf
 import cv2
+import json
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 from mediapipeHelper import mediapipe_detection, draw_styled_landmarks, extract_keypoints, mp_holistic, mp_drawing
@@ -11,8 +12,13 @@ from tensorflow.keras.models import Sequential
 import matplotlib.pyplot as plt
 from keras.callbacks import EarlyStopping
 
-DATA_PATH = os.path.join('MP_Data') #mkan el folder elly 3mlna fe save ll features
-MIN_VIDEOS = 40 #minimum number of videos for each action
+DATA_PATH = os.path.join('MP_GEN') #mkan el folder elly 3mlna fe save ll features
+TEST_DATA_PATH = os.path.join('MP_Test') 
+TRAIN_DATA_PATH = os.path.join('MP_Train')
+
+LABEL_MAP_PATH = os.path.join('label_map.json')
+
+MIN_VIDEOS = 10 #minimum number of videos for each action
 FRAMES_PER_VIDEO = 15 #number of frames per video (wont be changed)
 
 def save_features(actions,actions_path):
@@ -24,6 +30,7 @@ def save_features(actions,actions_path):
             # loop through every video in the folder of the name action
             videos_path = os.path.join(actions_path, action)
             videos = os.listdir(videos_path)
+            
             for video in videos:
                 # get the number of frames in the video
                 cap = cv2.VideoCapture(os.path.join(videos_path, video))
@@ -62,14 +69,15 @@ def save_features(actions,actions_path):
             start_folder = 1
             pbar.update(1)
 
-def load_features(actions, label_map):
+def load_features(actions, label_map,data_path=DATA_PATH):
     sequences, labels = [], []
     for action in actions:
-        for sequence in np.array(os.listdir(os.path.join(DATA_PATH, action))).astype(int):
+        for sequence in os.listdir(os.path.join(data_path, action)):
+            
             window = []
             for frame_num in range(FRAMES_PER_VIDEO):
-                res = np.load(os.path.join(DATA_PATH, action, str(
-                    sequence), "{}.npy".format(frame_num)))
+                res = np.load(os.path.join(data_path, action,
+                    sequence, "{}.npy".format(frame_num)))
                 window.append(res)
             sequences.append(window)
             labels.append(label_map[action])
@@ -102,9 +110,9 @@ def create_model(actions):
     return model
 
 
-def train_model(model, X_train, y_train, X_val, y_val, batch_size=32):
+def train_model(model, X_train, y_train, X_val, y_val, batch_size=16):
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-    early_stopping = EarlyStopping(monitor='val_loss', patience=500)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=600)
     tensorboard = tf.keras.callbacks.TensorBoard(log_dir=os.path.join("logs", 'test'))
     checkpoint = tf.keras.callbacks.ModelCheckpoint(
         './models/action{val_loss:.2f}-accuracy{val_accuracy:.2f}.h5', monitor='val_accuracy', verbose=1,
@@ -112,8 +120,8 @@ def train_model(model, X_train, y_train, X_val, y_val, batch_size=32):
     )
 
     callbacks_list = [checkpoint, tensorboard,early_stopping]
-    history = model.fit(X_train, y_train, epochs=1000000, batch_size=batch_size,
-              validation_data=(X_val, y_val), verbose=1, callbacks=callbacks_list)
+    history = model.fit(X_train, y_train, epochs=234324423, batch_size=batch_size,
+              validation_data=(X_val, y_val), verbose=1, callbacks=callbacks_list ,workers=8)
     return history
 
 
@@ -144,30 +152,72 @@ def show_results_and_graphs(history, X_test, y_test):
 
     plt.show()
 
+def get_word(word):
+    
+    synonym_map = {}
+    with open(os.path.join('MS-ASL', "MSASL_synonym.json")) as f:
+        data = json.load(f)
+        for synonym in data:
+            synonym_map[synonym[0]] = synonym
+    word = word.lower()
+    word = word.split("/")[0]
+    word = word.replace("-", " ")  
+    word = word.replace("#", "")  
+    for key, value in synonym_map.items():
+        if word in value:
+            return key
+    return word
+
 
 if __name__ == '__main__':
     actions = []
+    actions_count = {}
+    limit = 0
     for action in os.listdir(DATA_PATH):
         if len(os.listdir(os.path.join(DATA_PATH, action))) >= MIN_VIDEOS:
             actions.append(action)
     actions = np.array(actions)
     print("we have {} actions".format(actions.shape[0]))
 
+
     label_map = {label: num for num, label in enumerate(actions)}
+
+    #save label map into json file reversed and delete the old one
+    if os.path.exists(LABEL_MAP_PATH):
+        os.remove(LABEL_MAP_PATH)
+    with open(LABEL_MAP_PATH, 'w') as fp:
+        json.dump({v: k for k, v in label_map.items()}, fp)
+
     sequences, labels = load_features(actions, label_map)
     
     X = np.array(sequences)
     y = to_categorical(labels).astype(int)
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=7 ,stratify=y)
+    X_train, y_train = X, y
 
-    X_val, X_test, y_val, y_test = train_test_split(X_test, y_test, test_size=0.5, random_state=7 ,stratify=y_test)
-    #save_features(actions, DATA_PATH)
+    label_map = {label: num for num, label in enumerate(actions)}
+    sequences_test, labels_test = load_features(actions, label_map,data_path=os.path.join(TEST_DATA_PATH))
+    # remove the labels that are not in the training set
+    sequences_test = [sequence for sequence, label in zip(sequences_test, labels_test) if label in label_map.values()]
+    labels_test = [label for label in labels_test if label in label_map.values()]
+
+    
+    X_test = np.array(sequences_test)
+    y_test = to_categorical(labels_test).astype(int)
+    
+
+    sequences_test, labels_test = load_features(actions, label_map,data_path=os.path.join(TRAIN_DATA_PATH))
+    # remove the labels that are not in the training set
+    sequences_test = [sequence for sequence, label in zip(sequences_test, labels_test) if label in label_map.values()]
+    labels_test = [label for label in labels_test if label in label_map.values()]
+    X_val , y_val = np.array(sequences_test), to_categorical(labels_test).astype(int)
 
     model = create_model(actions)
     history = train_model(model, X_train, y_train, X_val, y_val)
 
-    show_results_and_graphs(history, X_test, y_test)
+    show_results_and_graphs(history, X_test,  y_test)
+
+    model.save('model.h5')
 
 
 

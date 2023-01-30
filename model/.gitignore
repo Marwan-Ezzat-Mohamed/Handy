@@ -2,5 +2,8 @@
 /logs
 /__pycache__
 /MP_Data
+/MP_GEN
+/MP_Train
+/MP_Test
 
 
