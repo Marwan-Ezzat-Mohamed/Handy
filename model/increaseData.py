@@ -5,7 +5,7 @@ from natsort import natsorted
 # specify the path to the parent directory containing the ASL word folders
 parent_dir = os.path.join('MP_Train')
 # specify the number of new video feature folders you want to create
-num_new_folders = 250
+num_new_folders = 350
 
 # iterate through each ASL word folder
 for word_folder in os.listdir(parent_dir):

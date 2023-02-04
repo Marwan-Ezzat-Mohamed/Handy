@@ -10,7 +10,7 @@ for word_folder in os.listdir('MP_Data'):
     if number_of_videos < min_videos_per_action:
         continue
     limit -= 1
-    number_of_videos_for_test = max(int(number_of_videos * 0.15), 5)
+    number_of_videos_for_test = max(int(number_of_videos * 0.15), 20)
     number_of_videos_for_train = number_of_videos - number_of_videos_for_test
         
 
