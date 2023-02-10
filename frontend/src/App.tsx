@@ -5,7 +5,6 @@ import * as tf from "@tensorflow/tfjs";
 import { modelAtom } from "./stores/jotai";
 import { useAtom } from "jotai";
 import { MediapipeCamera } from "./components/MediapipeCamera";
-import { start } from "repl";
 import { labelMap } from "./utils/index";
 
 function App() {

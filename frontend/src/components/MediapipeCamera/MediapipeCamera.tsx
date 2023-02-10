@@ -208,8 +208,6 @@ function MediapipeCamera({
       onFrame: async () => {
         await holistic.send({ image: videoRef.current! });
       },
-      width: 1280,
-      height: 720,
     });
 
     const holistic = new Holistic.Holistic(config);

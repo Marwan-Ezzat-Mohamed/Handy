@@ -35,6 +35,8 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "android-build": "ionic cap sync android && ionic cap run android",
+    "android-run": "ionic cap run android -l --external",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
