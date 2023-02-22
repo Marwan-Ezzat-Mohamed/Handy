@@ -228,8 +228,11 @@ function MediapipeCamera({
   }, []);
 
   return (
-    <div className="App">
-      <canvas ref={canvasRef} />
+    <div>
+      <canvas
+        className=" inline-block h-full w-4/5 rounded-xl"
+        ref={canvasRef}
+      />
       <video style={{ display: "none" }} ref={videoRef} />
     </div>
   );

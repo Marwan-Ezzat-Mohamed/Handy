@@ -3,18 +3,7 @@ import SigntoSpeech from "./components/SignToSpeech";
 
 function App() {
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        alignItems: "center",
-        height: "100vh",
-        width: "100vw",
-        backgroundColor: "black",
-        color: "white",
-      }}
-    >
+    <div className="flex h-screen w-screen flex-col  bg-white">
       <SigntoSpeech />
     </div>
   );
