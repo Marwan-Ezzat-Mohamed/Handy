@@ -2,8 +2,10 @@
 /logs
 /__pycache__
 /MP_Data
-/MP_GEN
 /MP_Train
+/MP_Val
 /MP_Test
 
 
+*.npy
+*.h5
