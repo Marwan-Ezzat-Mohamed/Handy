@@ -53,6 +53,13 @@ function MediapipeCamera({
     if (!canvasCtx) return;
     canvasCtx.save();
     canvasCtx.clearRect(0, 0, canvasCtx.canvas.width, canvasCtx.canvas.height);
+    canvasCtx.drawImage(
+      results.image,
+      0,
+      0,
+      canvasCtx.canvas.width,
+      canvasCtx.canvas.height
+    );
     if (results.segmentationMask) {
       canvasCtx.drawImage(
         results.segmentationMask,
@@ -221,10 +228,12 @@ function MediapipeCamera({
   }, []);
 
   return (
-    <div className="App">
-      <canvas ref={canvasRef} />
-      <video ref={videoRef} />
-      {/* <video style={{ display: "none" }} ref={videoRef} /> */}
+    <div>
+      <canvas
+        className=" inline-block h-full w-4/5 rounded-xl"
+        ref={canvasRef}
+      />
+      <video style={{ display: "none" }} ref={videoRef} />
     </div>
   );
 }

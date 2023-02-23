@@ -14,7 +14,8 @@ const config = {
   height: "500",
   x: 0,
   y: 0,
-  borderRadius: 0,
+  borderRadius: "0",
+  justifyContent: "center",
 };
 VideoRecorder.initialize({
   camera: VideoRecorderCamera.FRONT, // Can use BACK
