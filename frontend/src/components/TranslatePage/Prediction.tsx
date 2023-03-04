@@ -15,7 +15,6 @@ function Prediction({ startRef, prediction }: PredictionProps) {
           }}
         >
           {prediction.filter((res) => res !== "africa").join(" ")}
-          word
         </label>
       </div>
       <div className=" h-1/5 w-full">

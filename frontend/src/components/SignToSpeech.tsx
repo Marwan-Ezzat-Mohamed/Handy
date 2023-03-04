@@ -9,7 +9,6 @@ function SigntoSpeech() {
 
   return (
     <div className="mt-2 flex h-full w-full flex-col space-y-10">
-      <FormatBar />
       <div className="flex w-full flex-grow flex-col space-y-10 bg-white">
         <Camera startRef={startRef} setPrediction={setPrediction} />
         <Prediction startRef={startRef} prediction={prediction} />
