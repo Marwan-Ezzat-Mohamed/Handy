@@ -1,8 +1,11 @@
 import mediapipe as mp
 import cv2
 import numpy as np
+import logging
+logging.disable(logging.CRITICAL)
 mp_holistic = mp.solutions.holistic  # Holistic model
 mp_drawing = mp.solutions.drawing_utils  # Drawing utilities
+
 
 def mediapipe_detection(image, model):
     # COLOR CONVERSION BGR 2 RGB
@@ -13,6 +16,7 @@ def mediapipe_detection(image, model):
     image.flags.writeable = True  # Image is now writeable
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)  # COLOR COVERSION RGB 2 BGR
     return image, results
+
 
 def draw_landmarks(image, results):
     mp_drawing.draw_landmarks(image, results.face_landmarks,
@@ -63,3 +67,9 @@ def extract_keypoints(results):
     rh = np.array([[res.x, res.y, res.z] for res in results.right_hand_landmarks.landmark]).flatten(
     ) if results.right_hand_landmarks else np.zeros(21 * 3)
     return np.concatenate([lh, rh])
+
+
+def retract_keypoints(keypoints):
+    # return data to original shape
+    left_hand = keypoints[:63].reshape(-1, 3)
+    right_hand = keypoints[63:].reshape(-1, 3)

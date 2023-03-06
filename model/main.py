@@ -1,19 +1,15 @@
 import os
 import numpy as np
 import tensorflow as tf
-import cv2
 import json
-from sklearn.model_selection import train_test_split
-from tqdm import tqdm
-from mediapipeHelper import mediapipe_detection, draw_styled_landmarks, extract_keypoints, mp_holistic, mp_drawing
-from tensorflow.keras.layers import Conv1D, MaxPooling1D, Dropout, BatchNormalization, Flatten, Dense, GlobalMaxPooling1D, GlobalAveragePooling1D, AveragePooling1D
+from tensorflow.keras.layers import Conv1D, Dropout, BatchNormalization, Flatten, Dense, AveragePooling1D
 
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.models import Sequential
 import matplotlib.pyplot as plt
 from keras.callbacks import EarlyStopping
-import gc
+
 import shutil
 from increaseData import make_train_data
 from helper import make_test_val_data
@@ -29,10 +25,12 @@ LABEL_MAP_PATH = os.path.join('label_map.json')
 MIN_VIDEOS = 10  # minimum number of videos for each action
 FRAMES_PER_VIDEO = 15  # number of frames per video (wont be changed)
 
-# def save_features(actions,actions_path):
+
+# def save_features(actions, actions_path):
 #     with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
 
-#         pbar = tqdm(total=len(actions), desc="Processing actions", unit="action")
+#         pbar = tqdm(total=len(actions),
+#                     desc="Processing actions", unit="action")
 #         for action in actions:
 
 #             # loop through every video in the folder of the name action
@@ -67,7 +65,7 @@ FRAMES_PER_VIDEO = 15  # number of frames per video (wont be changed)
 
 #                     np.save(npy_path, keypoints)
 #                     # Show to screen
-#                     #cv2.imshow('OpenCV Feed', image)
+#                     # cv2.imshow('OpenCV Feed', image)
 #                     # Break gracefully
 #                     if cv2.waitKey(10) & 0xFF == ord('q'):
 #                         break
@@ -153,7 +151,6 @@ def create_model(actions):
     model.add(Dense(256*multi, activation='elu'))
     model.add(Dropout(0.5))
     model.add(Dense(actions.shape[0], activation='softmax'))
-
     return model
 
 
@@ -170,8 +167,8 @@ def train_model(model, X_train, y_train, X_val, y_val, batch_size=16):
     )
 
     callbacks_list = [checkpoint, tensorboard, early_stopping]
-    history = model.fit(X_train, y_train, epochs=50, batch_size=batch_size,
-                        validation_data=(X_val, y_val), verbose=1, callbacks=callbacks_list, workers=16)
+    history = model.fit(X_train, y_train, epochs=5000, batch_size=batch_size,
+                        validation_data=(X_val, y_val), verbose=1, callbacks=callbacks_list, workers=4)
     return history
 
 
@@ -211,13 +208,16 @@ if __name__ == '__main__':
     if not os.path.exists(TRAIN_DATA_PATH):
 
         if os.path.exists(TEST_DATA_PATH):
+            print("deleting old test data...")
             shutil.rmtree(TEST_DATA_PATH)
         if os.path.exists(VAL_DATA_PATH):
+            print("deleting old val data...")
             shutil.rmtree(VAL_DATA_PATH)
 
-        make_test_val_data()
+        make_test_val_data(limit=1)
         # delete the old train data if exists
         if os.path.exists(TRAIN_DATA_PATH):
+            print("deleting old train data...")
             shutil.rmtree(TRAIN_DATA_PATH)
 
         make_train_data()
@@ -245,7 +245,45 @@ if __name__ == '__main__':
     X_val, y_val = load_features(actions, label_map, data_type='val')
     print("loaded x_test, y_test, x_val, y_val, x_train, y_train")
 
-    batch_sizes = [16]
+    batch_sizes = [
+
+        actions.shape[0]//4,
+    ]
+
+    # # array that start from 10 to 100
+    # min_videos = []
+    # min_vids_map = {}
+    # for i in range(40, 41):
+    #     if os.path.exists(TEST_DATA_PATH):
+    #         print("deleting old test data...")
+    #         shutil.rmtree(TEST_DATA_PATH)
+    #     if os.path.exists(VAL_DATA_PATH):
+    #         print("deleting old val data...")
+    #         shutil.rmtree(VAL_DATA_PATH)
+
+    #     make_test_val_data(min_videos_per_action=i)
+    #     # delete the old train data if exists
+    #     if os.path.exists(TRAIN_DATA_PATH):
+    #         print("deleting old train data...")
+    #         shutil.rmtree(TRAIN_DATA_PATH)
+
+    #     make_train_data(use_val=True)
+    #     actions = os.listdir(TRAIN_DATA_PATH)
+    #     actions = np.array(actions)
+    #     print("we have {} actions".format(actions.shape[0]))
+
+    #     label_map = {label: num for num, label in enumerate(actions)}
+    #     X_train, y_train = load_features(actions, label_map, data_type='train')
+    #     X_test, y_test = load_features(actions, label_map, data_type='test')
+    #     X_val, y_val = load_features(actions, label_map, data_type='val')
+    #     print("loaded x_test, y_test, x_val, y_val, x_train, y_train")
+    #     model = create_model(actions)
+    #     history = train_model(model, X_train, y_train,
+    #                           X_val, y_val, batch_size=batch_sizes[0])
+    #     accuracy = show_test_results(model, X_test, y_test)
+    #     min_vids_map["acc:"+str(i) + " num_of_actions:" +
+    #                  str(actions.shape[0])] = accuracy
+    # print(min_vids_map)
 
     # sort the batch sizes
     batch_sizes.sort()
