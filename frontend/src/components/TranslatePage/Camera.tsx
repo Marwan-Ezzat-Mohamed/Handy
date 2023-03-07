@@ -86,37 +86,31 @@ function Camera({ startRef, setPrediction }: CameraProps) {
       //use the layers model to predict the gesture and get the confidence score and the label
       if (model) {
         const prediction = model.predict(tf.tensor3d(sequences)) as tf.Tensor;
-        const data = await prediction.data();
+        prediction.data().then((data) => {
+          const labels = prediction.argMax(-1).dataSync();
 
-        const labels = prediction.argMax(-1).dataSync();
-        const confidences = prediction.softmax().dataSync();
-
-        console.log({
-          labels,
-          confidences,
-        });
-
-        let max = 0;
-        let index = 0;
-        for (let i = 0; i < data.length; i++) {
-          if (data[i] > max) {
-            max = data[i];
-            index = i;
-          }
-        }
-        //console.log(data);
-        res.label = index;
-        res.confidence = max;
-        setPrediction((prev) => {
-          const newSet = [...prev];
-          labels.forEach((label: number) => {
-            const word = labelMap[label.toString() as keyof typeof labelMap];
-            if (newSet[newSet.length - 1] !== word) {
-              newSet.push(word);
+          let max = 0;
+          let index = 0;
+          for (let i = 0; i < data.length; i++) {
+            if (data[i] > max) {
+              max = data[i];
+              index = i;
             }
-          });
+          }
+          //console.log(data);
+          res.label = index;
+          res.confidence = max;
+          setPrediction((prev) => {
+            const newSet = [...prev];
+            labels.forEach((label: number) => {
+              const word = labelMap[label.toString() as keyof typeof labelMap];
+              if (newSet[newSet.length - 1] !== word) {
+                newSet.push(word);
+              }
+            });
 
-          return newSet;
+            return newSet;
+          });
         });
       }
       setResults([]);
@@ -138,7 +132,7 @@ function Camera({ startRef, setPrediction }: CameraProps) {
   };
 
   return (
-    <div className="flex h-2/5 w-full bg-white text-center ">
+    <div className="flex w-full flex-grow flex-col  bg-white p-2 text-center">
       <MediapipeCamera onResult={onResults} />
     </div>
   );

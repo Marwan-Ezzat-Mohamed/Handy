@@ -1,8 +1,10 @@
 import * as Holistic from "@mediapipe/holistic";
-import * as Camera from "@mediapipe/camera_utils";
 import * as drawingUtils from "@mediapipe/drawing_utils";
+import { useMemo } from "react";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
+import { connect } from "../../utils";
+let holistic: Holistic.Holistic | null = null;
 
 function MediapipeCamera({
   onResult,
@@ -10,39 +12,19 @@ function MediapipeCamera({
   onResult: (results: Holistic.Results) => void;
 }) {
   //const controls = window;
-  const canvasRef = useRef<null | HTMLCanvasElement>(null);
-  const videoRef = useRef(null);
-  const config = {
-    locateFile: (file: any) => {
-      return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}`;
-    },
-  };
 
-  const connect = (
-    ctx: CanvasRenderingContext2D,
-    connectors: Array<
-      [Holistic.NormalizedLandmark, Holistic.NormalizedLandmark]
-    >
-  ): void => {
-    const canvas = ctx.canvas;
-    for (const connector of connectors) {
-      const from = connector[0];
-      const to = connector[1];
-      if (from && to) {
-        if (
-          from.visibility &&
-          to.visibility &&
-          (from.visibility < 0.1 || to.visibility < 0.1)
-        ) {
-          continue;
-        }
-        ctx.beginPath();
-        ctx.moveTo(from.x * canvas.width, from.y * canvas.height);
-        ctx.lineTo(to.x * canvas.width, to.y * canvas.height);
-        ctx.stroke();
-      }
-    }
-  };
+  const [uploadedVideo, setUploadedVideo] = useState<any>(null);
+  const [useCamera, setUseCamera] = useState<boolean>(true);
+  const canvasRef = useRef<null | HTMLCanvasElement>(null);
+  const videoRef = useRef<any>(null);
+  const config = useMemo(
+    () => ({
+      locateFile: (file: any) => {
+        return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}`;
+      },
+    }),
+    []
+  );
 
   let activeEffect = "mask";
 
@@ -211,29 +193,112 @@ function MediapipeCamera({
     }
   };
   useEffect(() => {
-    const camera = new Camera.Camera(videoRef.current!, {
-      onFrame: async () => {
-        await holistic.send({ image: videoRef.current! });
-      },
-    });
-
-    const holistic = new Holistic.Holistic(config);
+    holistic = new Holistic.Holistic(config);
     holistic.setOptions({
       smoothLandmarks: true,
       minDetectionConfidence: 0.5,
       minTrackingConfidence: 0.5,
     });
     holistic.onResults(onMediapipeResults);
-    camera.start();
   }, []);
 
+  useEffect(() => {
+    const video = videoRef.current!;
+    const onFrame = () => {
+      const renderCanvas = async () => {
+        if (!videoRef.current || !holistic) return;
+        if (video.paused || video.ended) {
+          return;
+        }
+        await holistic.send({ image: video });
+        requestAnimationFrame(renderCanvas);
+      };
+      renderCanvas();
+    };
+
+    navigator.mediaDevices
+      .getUserMedia({
+        audio: false,
+        video: {
+          facingMode: "user",
+          width: 640,
+          height: 480,
+        },
+      })
+      .then((stream) => {
+        if (videoRef.current && useCamera) {
+          videoRef.current.srcObject = stream;
+        } else {
+          videoRef.current.srcObject = null;
+          if (canvasRef.current) {
+            const canvasCtx = canvasRef.current.getContext("2d");
+            if (!canvasCtx) return;
+            canvasCtx.save();
+            canvasCtx.clearRect(
+              0,
+              0,
+              canvasCtx.canvas.width,
+              canvasCtx.canvas.height
+            );
+          }
+
+          videoRef.current.src = uploadedVideo;
+        }
+      });
+
+    video.addEventListener("play", onFrame);
+
+    return () => {
+      video.removeEventListener("play", onFrame);
+    };
+  }, [useCamera, uploadedVideo]);
+
   return (
-    <div>
+    <div className="flex h-full flex-col items-center justify-center rounded-xl bg-black">
       <canvas
-        className=" inline-block h-full w-4/5 rounded-xl"
+        className="flex aspect-video rounded-xl"
         ref={canvasRef}
+        style={{
+          maxHeight: "300px",
+          maxWidth: "100%",
+          minWidth: "100%",
+        }}
       />
-      <video style={{ display: "none" }} ref={videoRef} />
+
+      <div>
+        <button
+          className="bg-slate-900 text-white"
+          onClick={() => {
+            setUseCamera((prev) => !prev);
+          }}
+        >
+          {!useCamera ? "Using Video" : "Using Camera"}
+        </button>
+
+        <input
+          type="file"
+          accept={useCamera ? "video/*;capture=camera" : "video/*"}
+          onChange={(e) => {
+            const file = e.target!.files![0];
+            const url = URL.createObjectURL(file);
+            setUploadedVideo(url);
+          }}
+        />
+      </div>
+      <video
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "0px ",
+          height: "0px",
+        }}
+        ref={videoRef}
+        src={uploadedVideo}
+        muted
+        loop
+        autoPlay={true}
+      />
     </div>
   );
 }

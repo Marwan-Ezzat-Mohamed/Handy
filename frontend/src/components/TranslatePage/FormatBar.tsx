@@ -18,74 +18,50 @@ function FormatBar() {
     }
   };
 
-  if (format === "Sign") {
-    return (
-      <div className=" flex w-full flex-row px-2 py-5">
-        <TextField
-          id="input-with-icon-textfield"
-          value=" Sign"
-          InputProps={{
-            readOnly: true,
-            startAdornment: (
-              <InputAdornment position="start">
-                <SignLanguageIcon color="primary" />
-              </InputAdornment>
-            ),
-          }}
-          variant="outlined"
-        />
+  const arr = [
+    <TextField
+      id="input-with-icon-textfield"
+      value="Sign"
+      key="Sign"
+      InputProps={{
+        readOnly: true,
+        startAdornment: (
+          <InputAdornment position="start">
+            <SignLanguageIcon color="primary" />
+          </InputAdornment>
+        ),
+      }}
+      variant="outlined"
+    />,
+    <TextField
+      id="input-with-icon-textfield"
+      value="Text"
+      key="Text"
+      InputProps={{
+        readOnly: true,
+        startAdornment: (
+          <InputAdornment position="start">
+            <TextFormatIcon color="primary" fontSize="large" />
+          </InputAdornment>
+        ),
+      }}
+      variant="outlined"
+    />,
+  ];
+
+  const first = format === "Sign" ? 0 : 1;
+  const second = format === "Sign" ? 1 : 0;
+
+  return (
+    <div className="flex w-full flex-row justify-center px-2 py-5">
+      <div className="flex">
+        {arr[first]}
         <IconButton color="primary" onClick={switchHandler}>
           <SwapHorizIcon />
         </IconButton>
-        <TextField
-          id="input-with-icon-textfield"
-          value="Text"
-          InputProps={{
-            readOnly: true,
-            startAdornment: (
-              <InputAdornment position="start">
-                <TextFormatIcon color="primary" fontSize="large" />
-              </InputAdornment>
-            ),
-          }}
-          variant="outlined"
-        />
+        {arr[second]}
       </div>
-    );
-  } else {
-    return (
-      <div className=" flex w-full flex-row px-2 py-5">
-        <TextField
-          id="input-with-icon-textfield"
-          value="Text"
-          InputProps={{
-            readOnly: true,
-            startAdornment: (
-              <InputAdornment position="start">
-                <TextFormatIcon color="primary" fontSize="large" />
-              </InputAdornment>
-            ),
-          }}
-          variant="outlined"
-        />
-        <IconButton color="primary" onClick={switchHandler}>
-          <SwapHorizIcon />
-        </IconButton>
-        <TextField
-          id="input-with-icon-textfield"
-          value=" Sign"
-          InputProps={{
-            readOnly: true,
-            startAdornment: (
-              <InputAdornment position="start">
-                <SignLanguageIcon color="primary" />
-              </InputAdornment>
-            ),
-          }}
-          variant="outlined"
-        />
-      </div>
-    );
-  }
+    </div>
+  );
 }
 export default FormatBar;

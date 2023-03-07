@@ -7,8 +7,8 @@ type PredictionProps = {
 function Prediction({ startRef, prediction }: PredictionProps) {
   const [startRecording, setStartRecording] = useState<boolean>(false);
   return (
-    <div className="inline-block  h-2/5 w-full  space-y-4 bg-white text-center">
-      <div className="inline-block h-4/5 w-4/5 rounded-xl bg-indigo-600  text-white ">
+    <div className="flex h-full flex-col bg-white p-2 text-center ">
+      <div className="flex flex-grow flex-col items-center justify-between rounded-xl bg-indigo-600 text-white">
         <label
           style={{
             fontSize: 24,
@@ -16,8 +16,6 @@ function Prediction({ startRef, prediction }: PredictionProps) {
         >
           {prediction.filter((res) => res !== "africa").join(" ")}
         </label>
-      </div>
-      <div className=" h-1/5 w-full">
         <Button
           variant="contained"
           onClick={() => {
@@ -26,6 +24,7 @@ function Prediction({ startRef, prediction }: PredictionProps) {
               return !prev;
             });
           }}
+          color="warning"
         >
           {startRecording ? "Stop" : "Start"}
         </Button>

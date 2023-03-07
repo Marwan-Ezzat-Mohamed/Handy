@@ -2,6 +2,17 @@
 module.exports = {
   content: ["./src/**/*.{js,jsx,ts,tsx}"],
   theme: {
+    extend: {
+      colors: {
+        gold: "#FEB86F",
+        violet: "#9194CE",
+        red: "#F492A0",
+        blue: "#3E479B",
+      },
+      screens: {
+        xs: "475px",
+      },
+    },
     screens: {
       sm: "375px",
       // => @media (min-width: 640px) { ... }
@@ -18,5 +29,17 @@ module.exports = {
       "2xl": "1536px",
       // => @media (min-width: 1536px) { ... }
     },
+    plugins: [],
+    safelist: [
+      {
+        pattern: /^bg-/,
+      },
+      {
+        pattern: /^text-/,
+      },
+      {
+        pattern: /^border-/,
+      },
+    ],
   },
 };
