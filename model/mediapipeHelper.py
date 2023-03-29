@@ -67,9 +67,3 @@ def extract_keypoints(results):
     rh = np.array([[res.x, res.y, res.z] for res in results.right_hand_landmarks.landmark]).flatten(
     ) if results.right_hand_landmarks else np.zeros(21 * 3)
     return np.concatenate([lh, rh])
-
-
-def retract_keypoints(keypoints):
-    # return data to original shape
-    left_hand = keypoints[:63].reshape(-1, 3)
-    right_hand = keypoints[63:].reshape(-1, 3)

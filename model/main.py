@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from keras.callbacks import EarlyStopping
 
 import shutil
-from increaseData import make_train_data
+
 from helper import make_test_val_data
 
 
@@ -110,12 +110,11 @@ def load_features(actions: list, label_map: dict, data_type: str = "train") -> t
     sequences, labels = [], []
     for action in actions:
         for sequence in os.listdir(os.path.join(data_path, action)):
-            window = []
-            for frame_num in range(FRAMES_PER_VIDEO):
-                res = np.load(os.path.join(data_path, action,
-                                           sequence, "{}.npy".format(frame_num)))
-                window.append(res)
-            sequences.append(window)
+
+            res = np.load(os.path.join(
+                data_path, action, sequence))
+
+            sequences.append(res)
             labels.append(label_map[action])
     sequences, labels = np.array(sequences), to_categorical(labels).astype(int)
     # save the data as npy file
@@ -167,7 +166,7 @@ def train_model(model, X_train, y_train, X_val, y_val, batch_size=16):
     )
 
     callbacks_list = [checkpoint, tensorboard, early_stopping]
-    history = model.fit(X_train, y_train, epochs=5000, batch_size=batch_size,
+    history = model.fit(X_train, y_train, epochs=10, batch_size=batch_size,
                         validation_data=(X_val, y_val), verbose=1, callbacks=callbacks_list, workers=4)
     return history
 
@@ -205,22 +204,21 @@ def get_word(word):
 
 
 if __name__ == '__main__':
-    if not os.path.exists(TRAIN_DATA_PATH):
+    # if not os.path.exists(TRAIN_DATA_PATH):
+    #     if os.path.exists(TEST_DATA_PATH):
+    #         print("deleting old test data...")
+    #         shutil.rmtree(TEST_DATA_PATH)
+    #     if os.path.exists(VAL_DATA_PATH):
+    #         print("deleting old val data...")
+    #         shutil.rmtree(VAL_DATA_PATH)
 
-        if os.path.exists(TEST_DATA_PATH):
-            print("deleting old test data...")
-            shutil.rmtree(TEST_DATA_PATH)
-        if os.path.exists(VAL_DATA_PATH):
-            print("deleting old val data...")
-            shutil.rmtree(VAL_DATA_PATH)
+    #     make_test_val_data(limit=1)
+    #     # delete the old train data if exists
+    #     if os.path.exists(TRAIN_DATA_PATH):
+    #         print("deleting old train data...")
+    #         shutil.rmtree(TRAIN_DATA_PATH)
 
-        make_test_val_data(limit=1)
-        # delete the old train data if exists
-        if os.path.exists(TRAIN_DATA_PATH):
-            print("deleting old train data...")
-            shutil.rmtree(TRAIN_DATA_PATH)
-
-        make_train_data()
+    #     split_val_to_val_and_test()
 
     actions = []
     actions_count = {}
@@ -290,6 +288,7 @@ if __name__ == '__main__':
     batch_sizes_accuracy = {}
     for batch_size in batch_sizes:
         model = create_model(actions)
+        # model.load_weights("./action0.23-accuracy0.94.h5")
         history = train_model(model, X_train, y_train,
                               X_val, y_val, batch_size=batch_size)
         accuracy = show_test_results(model, X_test, y_test)
