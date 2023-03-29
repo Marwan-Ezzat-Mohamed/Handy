@@ -3,8 +3,16 @@ import * as drawingUtils from "@mediapipe/drawing_utils";
 import { useMemo } from "react";
 
 import { useRef, useEffect, useState } from "react";
-import { connect } from "../../utils";
+import { connect, draw } from "../../utils";
+import { Button, Upload } from "antd";
+import { UploadChangeParam, UploadFile } from "antd/es/upload";
+
 let holistic: Holistic.Holistic | null = null;
+const dummyRequest = ({ file, onSuccess }: any) => {
+  setTimeout(() => {
+    onSuccess("ok");
+  }, 0);
+};
 
 function MediapipeCamera({
   onResult,
@@ -16,6 +24,7 @@ function MediapipeCamera({
   const [uploadedVideo, setUploadedVideo] = useState<any>(null);
   const [useCamera, setUseCamera] = useState<boolean>(true);
   const canvasRef = useRef<null | HTMLCanvasElement>(null);
+  const cameraRef = useRef<MediaStream | null>(null);
   const videoRef = useRef<any>(null);
   const config = useMemo(
     () => ({
@@ -33,164 +42,7 @@ function MediapipeCamera({
     if (!canvasRef.current) return;
     const canvasCtx = canvasRef.current.getContext("2d");
     if (!canvasCtx) return;
-    canvasCtx.save();
-    canvasCtx.clearRect(0, 0, canvasCtx.canvas.width, canvasCtx.canvas.height);
-    canvasCtx.drawImage(
-      results.image,
-      0,
-      0,
-      canvasCtx.canvas.width,
-      canvasCtx.canvas.height
-    );
-    if (results.segmentationMask) {
-      canvasCtx.drawImage(
-        results.segmentationMask,
-        0,
-        0,
-        canvasCtx.canvas.width,
-        canvasCtx.canvas.height
-      );
-      if (activeEffect === "mask" || activeEffect === "both") {
-        canvasCtx.globalCompositeOperation = "source-in";
-        canvasCtx.fillStyle = "#00FF007F";
-        canvasCtx.fillRect(
-          0,
-          0,
-          canvasCtx.canvas.width,
-          canvasCtx.canvas.height
-        );
-      } else {
-        canvasCtx.globalCompositeOperation = "source-out";
-        canvasCtx.fillStyle = "#0000FF7F";
-        canvasCtx.fillRect(
-          0,
-          0,
-          canvasCtx.canvas.width,
-          canvasCtx.canvas.height
-        );
-      }
-      canvasCtx.globalCompositeOperation = "destination-atop";
-
-      canvasCtx.globalCompositeOperation = "source-over";
-    } else {
-    }
-    canvasCtx.lineWidth = 5;
-    if (results.poseLandmarks) {
-      if (results.rightHandLandmarks) {
-        canvasCtx.strokeStyle = "black";
-        connect(canvasCtx, [
-          [
-            results.poseLandmarks[Holistic.POSE_LANDMARKS.RIGHT_ELBOW],
-            results.rightHandLandmarks[0],
-          ],
-        ]);
-      }
-      if (results.leftHandLandmarks) {
-        canvasCtx.strokeStyle = "black";
-        connect(canvasCtx, [
-          [
-            results.poseLandmarks[Holistic.POSE_LANDMARKS.LEFT_ELBOW],
-            results.leftHandLandmarks[0],
-          ],
-        ]);
-      }
-      drawingUtils.drawConnectors(
-        canvasCtx,
-        results.poseLandmarks,
-        Holistic.POSE_CONNECTIONS,
-        { color: "black" }
-      );
-      drawingUtils.drawLandmarks(
-        canvasCtx,
-        Object.values(Holistic.POSE_LANDMARKS_LEFT).map(
-          (index) => results.poseLandmarks[index]
-        ),
-        { visibilityMin: 0.65, color: "black", fillColor: "rgb(255,138,0)" }
-      );
-      drawingUtils.drawLandmarks(
-        canvasCtx,
-        Object.values(Holistic.POSE_LANDMARKS_RIGHT).map(
-          (index) => results.poseLandmarks[index]
-        ),
-        { visibilityMin: 0.65, color: "black", fillColor: "rgb(0,217,231)" }
-      );
-
-      // Hands...
-      drawingUtils.drawConnectors(
-        canvasCtx,
-        results.rightHandLandmarks,
-        Holistic.HAND_CONNECTIONS,
-        { color: "black" }
-      );
-      drawingUtils.drawLandmarks(canvasCtx, results.rightHandLandmarks, {
-        color: "black",
-        fillColor: "rgb(0,217,231)",
-        lineWidth: 2,
-        radius: (data: any) => {
-          return drawingUtils.lerp(data.from!.z!, -0.15, 0.1, 10, 1);
-        },
-      });
-      drawingUtils.drawConnectors(
-        canvasCtx,
-        results.leftHandLandmarks,
-        Holistic.HAND_CONNECTIONS,
-        { color: "black" }
-      );
-      drawingUtils.drawLandmarks(canvasCtx, results.leftHandLandmarks, {
-        color: "black",
-        fillColor: "rgb(255,138,0)",
-        lineWidth: 2,
-        radius: (data: any) => {
-          return drawingUtils.lerp(data.from!.z!, -0.15, 0.1, 10, 1);
-        },
-      });
-
-      // Face...
-      drawingUtils.drawConnectors(
-        canvasCtx,
-        results.faceLandmarks,
-        Holistic.FACEMESH_TESSELATION,
-        { color: "#C0C0C070", lineWidth: 1 }
-      );
-      drawingUtils.drawConnectors(
-        canvasCtx,
-        results.faceLandmarks,
-        Holistic.FACEMESH_RIGHT_EYE,
-        { color: "rgb(0,217,231)" }
-      );
-      drawingUtils.drawConnectors(
-        canvasCtx,
-        results.faceLandmarks,
-        Holistic.FACEMESH_RIGHT_EYEBROW,
-        { color: "rgb(0,217,231)" }
-      );
-      drawingUtils.drawConnectors(
-        canvasCtx,
-        results.faceLandmarks,
-        Holistic.FACEMESH_LEFT_EYE,
-        { color: "rgb(255,138,0)" }
-      );
-      drawingUtils.drawConnectors(
-        canvasCtx,
-        results.faceLandmarks,
-        Holistic.FACEMESH_LEFT_EYEBROW,
-        { color: "rgb(255,138,0)" }
-      );
-      drawingUtils.drawConnectors(
-        canvasCtx,
-        results.faceLandmarks,
-        Holistic.FACEMESH_FACE_OVAL,
-        { color: "#E0E0E0", lineWidth: 5 }
-      );
-      drawingUtils.drawConnectors(
-        canvasCtx,
-        results.faceLandmarks,
-        Holistic.FACEMESH_LIPS,
-        { color: "#E0E0E0", lineWidth: 5 }
-      );
-
-      canvasCtx.restore();
-    }
+    draw(canvasCtx, results);
   };
   useEffect(() => {
     holistic = new Holistic.Holistic(config);
@@ -203,58 +55,68 @@ function MediapipeCamera({
   }, []);
 
   useEffect(() => {
-    const video = videoRef.current!;
+    const video = videoRef.current;
     const onFrame = () => {
       const renderCanvas = async () => {
-        if (!videoRef.current || !holistic) return;
-        if (video.paused || video.ended) {
+        if (!videoRef.current || !holistic || video.paused || video.ended)
           return;
-        }
         await holistic.send({ image: video });
         requestAnimationFrame(renderCanvas);
       };
       renderCanvas();
     };
 
-    navigator.mediaDevices
-      .getUserMedia({
+    async function startCamera() {
+      cameraRef.current = await navigator.mediaDevices.getUserMedia({
         audio: false,
         video: {
           facingMode: "user",
           width: 640,
           height: 480,
         },
-      })
-      .then((stream) => {
-        if (videoRef.current && useCamera) {
-          videoRef.current.srcObject = stream;
-        } else {
-          videoRef.current.srcObject = null;
-          if (canvasRef.current) {
-            const canvasCtx = canvasRef.current.getContext("2d");
-            if (!canvasCtx) return;
-            canvasCtx.save();
-            canvasCtx.clearRect(
-              0,
-              0,
-              canvasCtx.canvas.width,
-              canvasCtx.canvas.height
-            );
-          }
-
-          videoRef.current.src = uploadedVideo;
-        }
       });
+
+      if (videoRef.current && useCamera) {
+        videoRef.current.srcObject = cameraRef.current;
+      } else {
+        videoRef.current.srcObject = null;
+        if (canvasRef.current) {
+          const canvasCtx = canvasRef.current.getContext("2d");
+          if (!canvasCtx) return;
+          canvasCtx.save();
+          canvasCtx.clearRect(
+            0,
+            0,
+            canvasCtx.canvas.width,
+            canvasCtx.canvas.height
+          );
+        }
+
+        videoRef.current.src = uploadedVideo;
+      }
+    }
+    startCamera();
 
     video.addEventListener("play", onFrame);
 
     return () => {
       video.removeEventListener("play", onFrame);
+      // turn off camera
+      if (cameraRef.current) {
+        cameraRef.current.getTracks().forEach((track) => track.stop());
+      }
     };
   }, [useCamera, uploadedVideo]);
 
+  const handleChange = (info: UploadChangeParam<UploadFile<any>>) => {
+    const file = info.file;
+    if (!file.originFileObj) return;
+    const url = URL.createObjectURL(file.originFileObj);
+    setUploadedVideo(url);
+  };
+
   return (
-    <div className="flex h-full flex-col items-center justify-center rounded-xl bg-black">
+    <div className="flex h-full flex-col items-center justify-center rounded-xl">
       <canvas
         className="flex aspect-video rounded-xl"
         ref={canvasRef}
@@ -275,15 +137,21 @@ function MediapipeCamera({
           {!useCamera ? "Using Video" : "Using Camera"}
         </button>
 
-        <input
-          type="file"
-          accept={useCamera ? "video/*;capture=camera" : "video/*"}
-          onChange={(e) => {
-            const file = e.target!.files![0];
-            const url = URL.createObjectURL(file);
-            setUploadedVideo(url);
+        <Upload
+          className="mt-3 mb-3"
+          accept=".mp4"
+          maxCount={1}
+          customRequest={dummyRequest}
+          onChange={handleChange}
+          onRemove={() => {
+            console.log("remove");
+            setUploadedVideo(null);
+            videoRef.current.srcObject = null;
+            videoRef.current.src = null;
           }}
-        />
+        >
+          <Button>Upload</Button>
+        </Upload>
       </div>
       <video
         style={{
