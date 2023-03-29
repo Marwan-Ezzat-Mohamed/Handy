@@ -1,67 +1,75 @@
-import { draw, getActionFrames } from "../utils";
-import { useRef, useEffect, useCallback } from "react";
+import { draw, drawFramesAndCreateVideo, getActionFrames } from "../utils";
+import { useRef, useEffect, useCallback, useState } from "react";
 
 interface TextToSignPlayerProps {
   text: string[];
 }
 
-const FPS = 30;
+const DEFAULT_PLAYBACK_SPEED = 1;
 
 const TextToSignPlayer = ({ text }: TextToSignPlayerProps) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const playbackSpeedRef = useRef<number>(1);
-  const stopCurrentPlayingRef = useRef<boolean>(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [playbackSpeed, setPlaybackSpeed] = useState<number>(
+    DEFAULT_PLAYBACK_SPEED
+  );
 
-  const playFrames = useCallback(async (frames: any[]) => {
-    if (stopCurrentPlayingRef.current) {
-      stopCurrentPlayingRef.current = false;
-      return;
-    }
-    const canvas = canvasRef.current;
-
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    //draw a frame with the playback speed with default of 1 and 30 fps
-    for (const frame of frames) {
-      draw(ctx, frame, false);
-      await new Promise((resolve) =>
-        setTimeout(resolve, 1000 / FPS / playbackSpeedRef.current)
-      );
-    }
-    playFrames(frames);
-  }, []);
+  const [videoUrl, setVideoUrl] = useState<string>("");
 
   useEffect(() => {
     async function getFrames() {
-      if (!text) return;
-      const promises = text.map((text) => getActionFrames(text));
-      const frames = await Promise.all(promises);
-      //merge frames
-      const mergedFrames = frames.reduce((acc, cur) => {
-        return acc.concat(cur);
-      }, []);
-
-      playFrames(mergedFrames);
+      const x = await drawFramesAndCreateVideo(text, DEFAULT_PLAYBACK_SPEED);
+      setVideoUrl(x as string);
     }
     getFrames();
+  }, [text]);
 
-    return () => {
-      stopCurrentPlayingRef.current = true;
-    };
-  }, [playFrames, text]);
+  useEffect(() => {
+    if (!videoRef.current) return;
+    videoRef.current.playbackRate = playbackSpeed;
+  }, [playbackSpeed]);
 
   return (
-    <div>
+    <div className="flex flex-grow flex-col items-center ">
       <h1>{text}</h1>
-      <canvas
-        ref={canvasRef}
+
+      <div
         style={{
-          width: "400px",
-          height: "400px",
-          backgroundColor: "black",
+          height: "500px",
         }}
-      ></canvas>
+      >
+        <video
+          style={{
+            width: "100%",
+            height: "100%",
+          }}
+          ref={videoRef}
+          src={videoUrl}
+          className="aspect-video rounded-xl"
+          loop
+          autoPlay
+        />
+      </div>
+
+      <div className="">
+        <input
+          type="range"
+          min="0.5"
+          max="2.5"
+          value={playbackSpeed}
+          onChange={(e) => {
+            setPlaybackSpeed(parseFloat(e.target.value));
+          }}
+          className="range range-info"
+          step="0.5"
+        />
+        <div className="flex  justify-between space-x-4 px-2 text-xs">
+          <label className="text-xl"> 0.5x</label>
+          <label className="text-xl"> 1x</label>
+          <label className="text-xl"> 1.5x</label>
+          <label className="text-xl"> 2x</label>
+          <label className="text-xl"> 2.5x</label>
+        </div>
+      </div>
     </div>
   );
 };

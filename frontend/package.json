@@ -13,11 +13,9 @@
     "@capacitor/status-bar": "4.1.1",
     "@emotion/react": "^11.10.5",
     "@emotion/styled": "^11.10.5",
+    "@mediapipe/camera_utils": "^0.3.1675465971",
     "@mediapipe/drawing_utils": "^0.3.1620248257",
     "@mediapipe/holistic": "^0.5.1635989137",
-
-    "@mediapipe/camera_utils": "^0.3.1675465971",
- 
     "@mui/icons-material": "^5.11.9",
     "@mui/material": "^5.11.9",
     "@tensorflow/tfjs": "^4.2.0",
@@ -30,6 +28,7 @@
     "@types/react": "^18.0.27",
     "@types/react-dom": "^18.0.10",
     "antd": "^5.3.3",
+    "daisyui": "^2.51.5",
     "jotai": "^1.13.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

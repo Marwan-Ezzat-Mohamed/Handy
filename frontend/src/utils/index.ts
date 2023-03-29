@@ -245,7 +245,7 @@ function drawElbowHandsConnection(
   }
 }
 
-export async function draw(
+export function draw(
   ctx: CanvasRenderingContext2D,
   pose: Holistic.Results,
   drawImage = true
@@ -253,11 +253,10 @@ export async function draw(
   if (!ctx) return;
   ctx.save();
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  if (drawImage) {
+  if (drawImage && pose.image) {
     ctx.drawImage(pose.image, 0, 0, ctx.canvas.width, ctx.canvas.height);
   }
 
-  console.log({ pose });
   if (pose.poseLandmarks) {
     drawBody(pose.poseLandmarks, ctx);
     drawElbowHandsConnection(pose as Pose, ctx);
@@ -273,7 +272,6 @@ export async function draw(
   }
 
   if (pose.faceLandmarks) {
-    console.log("face");
     drawFace(pose.faceLandmarks, ctx);
   }
 
@@ -287,3 +285,53 @@ export const getActionFrames = async (text: string) => {
   const frames = data[text];
   return frames;
 };
+
+export async function drawFramesAndCreateVideo(
+  sentence: string[],
+  speed: number,
+  fps = 30
+) {
+  return new Promise(async (resolve, reject) => {
+    const canvas = document.createElement("canvas");
+    //canvas aspect ratio is 16:9
+    canvas.width = 1280;
+    canvas.height = 720;
+    //canvas background color
+    canvas.style.backgroundColor = "red";
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // Get the frames from getActionFrames function
+    const promises = sentence.map((text) => getActionFrames(text));
+    const frames = await Promise.all(promises);
+    //merge frames
+    const mergedFrames = frames.reduce((acc, cur) => {
+      return acc.concat(cur);
+    }, []);
+
+    // Create a new MediaRecorder instance
+    const stream = canvas.captureStream();
+    const chunks: Blob[] = [];
+    const mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = (e) => {
+      chunks.push(e.data);
+    };
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(chunks, { type: "video/mp4" });
+      const videoURL = URL.createObjectURL(blob);
+      resolve(videoURL);
+    };
+
+    // Start recording
+    mediaRecorder.start();
+
+    // Draw the frames
+    for (let i = 0; i < mergedFrames.length; i++) {
+      draw(ctx, mergedFrames[i], false);
+      await new Promise((resolve) => setTimeout(resolve, 1000 / fps / speed));
+    }
+
+    // Stop recording
+    mediaRecorder.stop();
+  });
+}
