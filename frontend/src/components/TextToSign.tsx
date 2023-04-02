@@ -1,5 +1,4 @@
-import React, { useState } from "react";
-import FormatBar from "./TranslatePage/FormatBar";
+
 import SearchBox from "./SearchBox";
 import TextToSignPlayer from "./TextToSignPlayer";
 function TextToSign() {
