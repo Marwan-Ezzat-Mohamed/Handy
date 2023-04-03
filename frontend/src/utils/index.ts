@@ -751,7 +751,7 @@ export async function drawFramesAndCreateVideo(
   speed: number,
   fps = 30
 ) {
-  return new Promise(async (resolve, reject) => {
+  return new Promise<string>(async (resolve, reject) => {
     const canvas = document.createElement("canvas");
     //canvas aspect ratio is 16:9
     canvas.width = 1280;

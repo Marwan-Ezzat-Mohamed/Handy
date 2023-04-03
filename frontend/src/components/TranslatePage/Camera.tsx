@@ -5,6 +5,7 @@ import { modelAtom } from "../../stores/jotai";
 import { useAtom } from "jotai";
 import { labelMap } from "../../utils/index";
 import { MediapipeCamera } from "../MediapipeCamera";
+import { FRAMES_FOR_PREDICTION } from "./../../utils/index";
 
 function chunkArray(arr: any[], chunkSize: number): any[][] {
   const result = [];
@@ -68,38 +69,34 @@ function Camera({ startRef, setPrediction }: CameraProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   async function startPrediction() {
-    if (results && results.length >= 15) {
-      const chunks = chunkArray(results, 15);
+    if (results && results.length >= FRAMES_FOR_PREDICTION) {
+      const chunks = chunkArray(results, FRAMES_FOR_PREDICTION);
 
       const sequences = chunks
         .map((chunk) => {
           return chunk.map((result) => extractKeypoints(result));
         })
-        .filter((seq) => seq.length === 15);
+        .filter((seq) => seq.length === FRAMES_FOR_PREDICTION);
 
       console.log(chunks);
 
-      const res: any = {
-        label: null,
-        confidence: null,
-      };
       //use the layers model to predict the gesture and get the confidence score and the label
       if (model) {
         const prediction = model.predict(tf.tensor3d(sequences)) as tf.Tensor;
         prediction.data().then((data) => {
           const labels = prediction.argMax(-1).dataSync();
+          //get the confidence score and the label of each gesture
 
-          let max = 0;
-          let index = 0;
-          for (let i = 0; i < data.length; i++) {
-            if (data[i] > max) {
-              max = data[i];
-              index = i;
-            }
+          for (let i = 0; i < labels.length; i++) {
+            console.log({
+              word: labelMap[labels[i].toString() as keyof typeof labelMap],
+              confidence: data[i],
+              labels,
+            });
           }
-          //console.log(data);
-          res.label = index;
-          res.confidence = max;
+
+          console.log("\n\n\n");
+
           setPrediction((prev) => {
             const newSet = [...prev];
             labels.forEach((label: number) => {
