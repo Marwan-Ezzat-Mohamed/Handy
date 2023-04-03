@@ -70,7 +70,13 @@ function Camera({ startRef, setPrediction }: CameraProps) {
   }, []);
   async function startPrediction() {
     if (results && results.length >= FRAMES_FOR_PREDICTION) {
-      const chunks = chunkArray(results, FRAMES_FOR_PREDICTION);
+      const filteredResults = results.filter((result) => {
+        const extractedKeypoints = extractKeypoints(result);
+        //check if the sum of the keypoints is 0
+        const sum = extractedKeypoints.reduce((a, b) => a + b, 0);
+        return sum === 0 ? false : true;
+      });
+      const chunks = chunkArray(filteredResults, FRAMES_FOR_PREDICTION);
 
       const sequences = chunks
         .map((chunk) => {
