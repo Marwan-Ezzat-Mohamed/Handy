@@ -16,7 +16,7 @@ import istarmap
 class Dataset:
 
     # static variables
-    resize_values = [2.0, 0.5, 1.5, 2.5, 2.2, 1.8]
+    resize_values = [1.2, 0.5, 1.4, 1.6, 1.8]
     features_output_folder_name = 'MP_DATA_NEW',
 
     def __init__(
@@ -24,7 +24,7 @@ class Dataset:
             dataset_folder_path='DATASETS',
             num_frames_per_video=20,
             features_output_folder_name='MP_DATA_NEW',
-            resize_values=[2.0, 0.5, 1.5, 2.5, 2.2, 1.8],
+            resize_values=[1.2, 0.5, 1.4, 1.6, 1.8],
             save_new_videos=True,
     ):
         if features_output_folder_name is not None:
@@ -39,10 +39,10 @@ class Dataset:
         self.save_new_videos = save_new_videos
 
     def process(self):
-        self._put_all_videos_in_one_folder()
-        self._remove_corrupted_videos()
-        self._remove_none_moving_frames_from_videos()
-        self._adjust_videos_total_frames()
+        # self._put_all_videos_in_one_folder()
+        # self._remove_corrupted_videos()
+        # self._remove_none_moving_frames_from_videos()
+        # self._adjust_videos_total_frames()
         self._increase_videos_by_data_augmentation()
         self._save_videos_per_actions_json()
         self._save_videos_features()
@@ -339,7 +339,7 @@ class Dataset:
         cv2.destroyAllWindows()
 
     @staticmethod
-    def resize_video(input_path,  multiplier=2.0):
+    def resize_video(input_path,  multiplier=2.0, save_video=True):
         # output_path save as input_path but adding _resized to the name and the multiplier
         output_path = input_path[:-4] + '_resized_' + str(multiplier) + 'x.mp4'
         if os.path.exists(output_path):
@@ -415,7 +415,7 @@ class Dataset:
             pbar.update(1)
 
     @staticmethod
-    def detect_non_moving_frames(video_path,  threshold=0.1):
+    def detect_non_moving_frames(video_path,  threshold=0.08):
         moving_video_suffix = '_moving.mp4'
         if video_path.endswith(moving_video_suffix):
             return
