@@ -37,10 +37,10 @@ def get_all_vids_paths(folder_name):
 
 def extract_keypoints_dict(results):
     keypoints_map = {
+        "faceLandmarks": [],
         "poseLandmarks": [],
         "leftHandLandmarks": [],
         "rightHandLandmarks": [],
-
     }
     keypoints = []
     if results.pose_landmarks:
@@ -78,16 +78,16 @@ def extract_keypoints_dict(results):
         keypoints_map['rightHandLandmarks'] = list(keypoints)
         keypoints.clear()
 
-    # if results.face_landmarks:
-    #     for lm in results.face_landmarks.landmark:
-    #         keypoints.append({
-    #             "x": lm.x,
-    #             "y": lm.y,
-    #             "z": lm.z,
-    #             "visibility": 1
-    #         })
-    #     keypoints_map['faceLandmarks'] = list(keypoints)
-    #     keypoints.clear()
+    if results.face_landmarks:
+        for lm in results.face_landmarks.landmark:
+            keypoints.append({
+                "x": lm.x,
+                "y": lm.y,
+                "z": lm.z,
+                "visibility": 1
+            })
+        keypoints_map['faceLandmarks'] = list(keypoints)
+        keypoints.clear()
     return keypoints_map
 
 
@@ -115,6 +115,8 @@ def make_keypoints_json(videos_paths):
             # show the video
 
             action = video_path.split(".")[0].split("\\")[-1]
+            action = action.split("-")[0].lower()
+
             keypoints_map[action] = action_keypoints
 
     with open(os.path.join('keypoints_reshaped' + '.json'), 'w') as f:
@@ -129,7 +131,7 @@ if __name__ == '__main__':
 
     #########################
     # datasets_path = 'DATASETS'
-    unique_videos_path = "unique_videos"
+    unique_videos_path = "sentence"
     # # create a folder to store the unique videos
     # if not os.path.exists(unique_videos_path):
     #     os.mkdir(unique_videos_path)
