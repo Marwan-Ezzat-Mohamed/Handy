@@ -19,6 +19,7 @@
     "@mediapipe/holistic": "^0.5.1635989137",
     "@mui/icons-material": "^5.11.9",
     "@mui/material": "^5.11.9",
+    "@shopify/react-web-worker": "^5.0.11",
     "@tensorflow/tfjs": "^4.2.0",
     "@tensorflow/tfjs-converter": "^4.2.0",
     "@testing-library/jest-dom": "^5.16.5",
@@ -29,6 +30,7 @@
     "@types/react": "^18.0.27",
     "@types/react-dom": "^18.0.10",
     "antd": "^5.3.3",
+    "comlink": "^4.4.1",
     "daisyui": "^2.51.5",
     "jotai": "^1.13.1",
     "lodash": "^4.17.21",
@@ -38,6 +40,7 @@
     "react-scripts": "^5.0.1",
     "typescript": "^4.9.4",
     "web-vitals": "^2.1.4",
+    "worker-plugin": "^5.0.1",
     "zustand": "^4.3.2"
   },
   "scripts": {

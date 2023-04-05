@@ -1,12 +1,13 @@
 import { Results, NormalizedLandmark } from "@mediapipe/holistic";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import * as tf from "@tensorflow/tfjs";
 import { modelAtom } from "../../stores/jotai";
 import { useAtom } from "jotai";
 import { labelMap } from "../../utils/index";
 import { MediapipeCamera } from "../MediapipeCamera";
 import { FRAMES_FOR_PREDICTION } from "../../utils/index";
-import { useWorker } from "@koale/useworker";
+import { createWorkerFactory, useWorker } from "@shopify/react-web-worker";
+const createWorker = createWorkerFactory(() => import("./predict"));
 
 function chunkArray(arr: any[], chunkSize: number): any[][] {
   const result = [];
@@ -51,12 +52,11 @@ type CameraProps = {
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
-function Camera({ startRef, setPrediction, setLoading }: CameraProps) {
+const Camera = ({ startRef, setPrediction, setLoading }: CameraProps) => {
   const [model, setModel] = useAtom(modelAtom);
   const resultsRef = useRef<Results[]>([]);
   const [predict, setPredict] = useState(false);
-  const [predictionWorker, predictionWorkerController] =
-    useWorker(startPrediction);
+  const worker = useWorker(createWorker);
 
   useEffect(() => {
     async function load() {
@@ -67,7 +67,6 @@ function Camera({ startRef, setPrediction, setLoading }: CameraProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   async function startPrediction(results: Results[]): Promise<any[]> {
-    return [1, 2, 3];
     if (results && results.length >= FRAMES_FOR_PREDICTION) {
       const filteredResults = results.filter((result) => {
         const extractedKeypoints = extractKeypoints(result);
@@ -139,27 +138,35 @@ function Camera({ startRef, setPrediction, setLoading }: CameraProps) {
       setPrediction([]);
     } else {
     }
-    console.log({ res: resultsRef.current, startRef });
+    // console.log({ res: resultsRef.current, startRef });
     if (
       resultsRef.current &&
       resultsRef.current.length !== 0 &&
       !startRef.current
     ) {
-      setLoading(true);
-      const resultsCopy = [...resultsRef.current];
-      resultsRef.current = [];
-      const data = await predictionWorker(resultsCopy);
-      console.log({ data });
-      setPrediction(data!);
-      setLoading(false);
-      console.count("haga");
     }
   };
 
+  const test = async () => {};
   return (
     <div className="flex w-full flex-grow flex-col  bg-white p-2 text-center">
       <MediapipeCamera onResult={onResults} />
+      <button
+        onClick={() => {
+          //   setLoading(true);
+          const resultsCopy = [...resultsRef.current];
+          resultsRef.current = [];
+          console.log({ resultsCopy });
+          worker
+            .startPrediction(model, resultsCopy)
+            .then((webWorkerMessage) => {
+              console.log({ webWorkerMessage });
+            });
+        }}
+      >
+        startttt
+      </button>
     </div>
   );
-}
+};
 export default Camera;
