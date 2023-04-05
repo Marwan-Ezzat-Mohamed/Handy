@@ -1,11 +1,12 @@
 import { Results, NormalizedLandmark } from "@mediapipe/holistic";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import * as tf from "@tensorflow/tfjs";
 import { modelAtom } from "../../stores/jotai";
 import { useAtom } from "jotai";
 import { labelMap } from "../../utils/index";
 import { MediapipeCamera } from "../MediapipeCamera";
-import { FRAMES_FOR_PREDICTION } from "./../../utils/index";
+import { FRAMES_FOR_PREDICTION } from "../../utils/index";
+import { useWorker } from "@koale/useworker";
 
 function chunkArray(arr: any[], chunkSize: number): any[][] {
   const result = [];
@@ -47,18 +48,15 @@ function extractKeypoints(results: Results): number[] {
 type CameraProps = {
   startRef: React.MutableRefObject<boolean>;
   setPrediction: React.Dispatch<React.SetStateAction<string[]>>;
+  setLoading: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
-function Camera({ startRef, setPrediction }: CameraProps) {
+function Camera({ startRef, setPrediction, setLoading }: CameraProps) {
   const [model, setModel] = useAtom(modelAtom);
-  const [results, setResults] = useState<null | Results[]>([]);
-
+  const resultsRef = useRef<Results[]>([]);
   const [predict, setPredict] = useState(false);
-
-  useEffect(() => {
-    startPrediction();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [predict]);
+  const [predictionWorker, predictionWorkerController] =
+    useWorker(startPrediction);
 
   useEffect(() => {
     async function load() {
@@ -68,11 +66,11 @@ function Camera({ startRef, setPrediction }: CameraProps) {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  async function startPrediction() {
+  async function startPrediction(results: Results[]): Promise<any[]> {
+    return [1, 2, 3];
     if (results && results.length >= FRAMES_FOR_PREDICTION) {
       const filteredResults = results.filter((result) => {
         const extractedKeypoints = extractKeypoints(result);
-        //check if the sum of the keypoints is 0
         const sum = extractedKeypoints.reduce((a, b) => a + b, 0);
         return sum === 0 ? false : true;
       });
@@ -88,7 +86,7 @@ function Camera({ startRef, setPrediction }: CameraProps) {
 
       //use the layers model to predict the gesture and get the confidence score and the label
       if (model) {
-        const prediction = model.predict(tf.tensor3d(sequences)) as tf.Tensor;
+        const prediction = model!.predict(tf.tensor3d(sequences)) as tf.Tensor;
         prediction.data().then((data) => {
           const labels = prediction.argMax(-1).dataSync();
           //get the confidence score and the label of each gesture
@@ -100,10 +98,17 @@ function Camera({ startRef, setPrediction }: CameraProps) {
               labels,
             });
           }
+          //console.log(data);
 
-          console.log("\n\n\n");
-
-          setPrediction((prev) => {
+          const array: any = [];
+          for (let i = 0; i < labels.length; i++) {
+            const word =
+              labelMap[labels[i].toString() as keyof typeof labelMap];
+            if (array[array.length - 1] !== word) {
+              array.push(word);
+            }
+          }
+          /*setPrediction((prev) => {
             const newSet = [...prev];
             labels.forEach((label: number) => {
               const word = labelMap[label.toString() as keyof typeof labelMap];
@@ -113,24 +118,41 @@ function Camera({ startRef, setPrediction }: CameraProps) {
             });
 
             return newSet;
-          });
+          });*/
+          return array;
         });
       }
-      setResults([]);
+      return [];
     }
+    return [];
   }
-  const onResults = (results: Results) => {
+  const onResults = async (res: Results) => {
     if (startRef.current) {
       //   console.log('haga');
-      setResults((prev) => {
-        if (prev) {
-          return [...prev, results];
-        }
-        return [results];
-      });
+      resultsRef.current.push(res);
+      // setResults((prev) => {
+      //   if (prev) {
+      //     return [...prev, res];
+      //   }
+      //   return [res];
+      // });
       setPrediction([]);
     } else {
-      setPredict((prev) => !prev);
+    }
+    console.log({ res: resultsRef.current, startRef });
+    if (
+      resultsRef.current &&
+      resultsRef.current.length !== 0 &&
+      !startRef.current
+    ) {
+      setLoading(true);
+      const resultsCopy = [...resultsRef.current];
+      resultsRef.current = [];
+      const data = await predictionWorker(resultsCopy);
+      console.log({ data });
+      setPrediction(data!);
+      setLoading(false);
+      console.count("haga");
     }
   };
 
