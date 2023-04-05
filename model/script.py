@@ -2,9 +2,10 @@ import os
 import json
 import cv2
 from moviepy.video.io.VideoFileClip import VideoFileClip
-
+import shutil
 from tqdm import tqdm
 from mediapipeHelper import *
+import multiprocessing
 
 
 def convert_to_avcmp4(video_path):
@@ -39,7 +40,7 @@ def extract_keypoints_dict(results):
         "poseLandmarks": [],
         "leftHandLandmarks": [],
         "rightHandLandmarks": [],
-        "faceLandmarks": []
+
     }
     keypoints = []
     if results.pose_landmarks:
@@ -77,16 +78,16 @@ def extract_keypoints_dict(results):
         keypoints_map['rightHandLandmarks'] = list(keypoints)
         keypoints.clear()
 
-    if results.face_landmarks:
-        for lm in results.face_landmarks.landmark:
-            keypoints.append({
-                "x": lm.x,
-                "y": lm.y,
-                "z": lm.z,
-                "visibility": 1
-            })
-        keypoints_map['faceLandmarks'] = list(keypoints)
-        keypoints.clear()
+    # if results.face_landmarks:
+    #     for lm in results.face_landmarks.landmark:
+    #         keypoints.append({
+    #             "x": lm.x,
+    #             "y": lm.y,
+    #             "z": lm.z,
+    #             "visibility": 1
+    #         })
+    #     keypoints_map['faceLandmarks'] = list(keypoints)
+    #     keypoints.clear()
     return keypoints_map
 
 
@@ -103,10 +104,10 @@ def make_keypoints_json(videos_paths):
                 ret, frame = cap.read()
                 if ret:
                     image, results = mediapipe_detection(frame, holistic)
-                    draw_landmarks(image, results)
-                    cv2.imshow('OpenCV Feed', image)
-                    # sleep for 1 second
-                    cv2.waitKey(100)
+                    # draw_landmarks(image, results)
+                    # cv2.imshow('OpenCV Feed', image)
+                    # # sleep for 1 second
+                    # cv2.waitKey(100)
                     action_keypoints.append(extract_keypoints_dict(results))
                 else:
                     break
@@ -120,10 +121,57 @@ def make_keypoints_json(videos_paths):
         json.dump(keypoints_map, f)
 
 
-# DATASETS/DATASET/ACTION/VIDEO.mp4
-all_vids = get_all_vids_paths('C:\\Users\\Marwan\\Downloads\\videos')
-# convert all videos to mp4 format regardless of their original format
-# replace the original videos with the converted ones
-pbar = tqdm(total=len(all_vids))
-limit = 2
-make_keypoints_json = make_keypoints_json(all_vids[:limit])
+if __name__ == '__main__':
+    # videos = get_all_vids_paths('DATA')
+    # for video in videos:
+    #     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
+    #         pool.map(convert_to_avcmp4, videos)
+
+    #########################
+    # datasets_path = 'DATASETS'
+    unique_videos_path = "unique_videos"
+    # # create a folder to store the unique videos
+    # if not os.path.exists(unique_videos_path):
+    #     os.mkdir(unique_videos_path)
+
+    # # get all the videos paths
+    # # DATASETS/DATASET/ACTION_NAME/VIDEO.mp4
+    # videos_path = get_all_vids_paths(datasets_path)
+    # all_actions_names = [video.split(os.sep)[-2] for video in videos_path]
+    # all_actions = list(set(all_actions_names))
+    # # copy the highest resolution video of each action to videos folder and rename it to the action name
+    # # DATASETS/DATASET/ACTION/VIDEO.mp4
+    # # videos/VIDEO.mp4
+    # # videos/ACTION.mp4
+    # for action in all_actions:
+    #     print(action)
+    #     action_videos = [video for video in videos_path if action in video]
+    #     # get the highest resolution video
+    #     highest_res_video = max(action_videos, key=os.path.getsize)
+    #     # copy the video to the unique_videos folder
+    #     shutil.copy(highest_res_video, unique_videos_path)
+    #     # rename the video to the action name
+    #     # highest_res_video DATASETS/DATASET/ACTION/VIDEO.mp4
+
+    #     # rename the video to the action name in the unique_videos folder
+    #     old_name = os.path.join(
+    #         unique_videos_path, highest_res_video.split(os.sep)[-1])
+    #     new_name = os.path.join(unique_videos_path, action + '.mp4')
+    #     # print(old_name, new_name)
+    #     os.rename(old_name, new_name)
+
+    # # convert all videos to mp4 format regardless of their original format
+    # # replace the original videos with the converted ones
+    # videos_path = get_all_vids_paths(unique_videos_path)
+    # pbar = tqdm(total=len(videos_path))
+    # for video in videos_path:
+    #     convert_to_avcmp4(video)
+    #     pbar.update(1)
+
+    # # DATASETS/DATASET/ACTION/VIDEO.mp4
+    all_vids = get_all_vids_paths(unique_videos_path)
+    # convert all videos to mp4 format regardless of their original format
+    # replace the original videos with the converted ones
+    # pbar = tqdm(total=len(all_vids))
+
+    make_keypoints_json(all_vids)

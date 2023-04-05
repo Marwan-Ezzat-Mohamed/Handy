@@ -23,7 +23,7 @@ VAL_DATA_PATH = os.path.join('MP_Val')
 LABEL_MAP_PATH = os.path.join('label_map.json')
 
 MIN_VIDEOS = 10  # minimum number of videos for each action
-FRAMES_PER_VIDEO = 15  # number of frames per video (wont be changed)
+FRAMES_PER_VIDEO = 20  # number of frames per video (wont be changed)
 
 
 # def save_features(actions, actions_path):
@@ -125,7 +125,7 @@ def load_features(actions: list, label_map: dict, data_type: str = "train") -> t
 
 def create_model(actions):
 
-    multi = 1
+    multi = 0.0625
     model = Sequential()
     model.add(Conv1D(128*multi, kernel_size=2, activation='elu',
               input_shape=(FRAMES_PER_VIDEO, 126)))
@@ -150,6 +150,7 @@ def create_model(actions):
     model.add(Dense(256*multi, activation='elu'))
     model.add(Dropout(0.5))
     model.add(Dense(actions.shape[0], activation='softmax'))
+    # model.load_weights('./models.h5')
     return model
 
 
@@ -220,27 +221,34 @@ if __name__ == '__main__':
 
     #     split_val_to_val_and_test()
 
-    actions = []
-    actions_count = {}
-    limit = 0
-    actions = os.listdir(TRAIN_DATA_PATH)
-    actions = np.array(actions)
+    # actions = []
+    # actions_count = {}
+    # limit = 0
+    # actions = os.listdir(TRAIN_DATA_PATH)
+    # actions = np.array(actions)
+    # print("we have {} actions".format(actions.shape[0]))
+
+    # load label_map from json file
+    label_map = {}
+    with open(LABEL_MAP_PATH) as fp:
+        label_map = json.load(fp)
+    actions = np.array(list(label_map.keys()))
     print("we have {} actions".format(actions.shape[0]))
+    # label_map = {label: num for num, label in enumerate(actions)}
 
-    label_map = {label: num for num, label in enumerate(actions)}
+    # # delete the old json file if exists
+    # if os.path.exists(LABEL_MAP_PATH):
+    #     os.remove(LABEL_MAP_PATH)
 
-    # delete the old json file if exists
-    if os.path.exists(LABEL_MAP_PATH):
-        os.remove(LABEL_MAP_PATH)
-    # save label map into json file reversed and
-    with open(LABEL_MAP_PATH, 'w') as fp:
-        json.dump({v: k for k, v in label_map.items()}, fp)
+    # # save label map into json file reversed and
+    # with open(LABEL_MAP_PATH, 'w') as fp:
+    #     json.dump({v: k for k, v in label_map.items()}, fp)
 
     # load x_test and y_test and x_val and y_val and x_train and y_train
 
-    X_train, y_train = load_features(actions, label_map, data_type='train')
+    # X_train, y_train = load_features(actions, label_map, data_type='train')
     X_test, y_test = load_features(actions, label_map, data_type='test')
-    X_val, y_val = load_features(actions, label_map, data_type='val')
+    # X_val, y_val = load_features(actions, label_map, data_type='val')
     print("loaded x_test, y_test, x_val, y_val, x_train, y_train")
 
     batch_sizes = [
@@ -289,11 +297,11 @@ if __name__ == '__main__':
     for batch_size in batch_sizes:
         model = create_model(actions)
         # model.load_weights("./action0.23-accuracy0.94.h5")
-        history = train_model(model, X_train, y_train,
-                              X_val, y_val, batch_size=batch_size)
+        # history = train_model(model, X_train, y_train,
+        #                       X_val, y_val, batch_size=batch_size)
         accuracy = show_test_results(model, X_test, y_test)
         batch_sizes_accuracy[batch_size] = accuracy
-        model.save("./models.h5")
+        # model.save("./models.h5")
 
     print(batch_sizes_accuracy)
     print("top 5 batch sizes")

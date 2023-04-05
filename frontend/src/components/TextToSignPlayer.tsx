@@ -17,8 +17,11 @@ const TextToSignPlayer = ({ text }: TextToSignPlayerProps) => {
 
   useEffect(() => {
     async function getFrames() {
-      const x = await drawFramesAndCreateVideo(text, DEFAULT_PLAYBACK_SPEED);
-      setVideoUrl(x as string);
+      const generatedVideoUrl = await drawFramesAndCreateVideo(
+        text,
+        DEFAULT_PLAYBACK_SPEED
+      );
+      setVideoUrl(generatedVideoUrl);
     }
     getFrames();
   }, [text]);
@@ -29,12 +32,11 @@ const TextToSignPlayer = ({ text }: TextToSignPlayerProps) => {
   }, [playbackSpeed]);
 
   return (
-    <div className="flex flex-grow flex-col items-center ">
-      <h1>{text}</h1>
-
+    <div className="flex h-full flex-col items-center ">
       <div
+        className="rounded-x flex flex-grow flex-col items-center justify-center text-white"
         style={{
-          height: "500px",
+          height: "clamp(150px, 90%, 95%)",
         }}
       >
         <video
