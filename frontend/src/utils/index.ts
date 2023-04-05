@@ -5,7 +5,6 @@
 
 import * as Holistic from "@mediapipe/holistic";
 import * as drawing from "@mediapipe/drawing_utils";
-
 export interface Pose {
   faceLandmarks: PoseLandmark[];
   poseLandmarks: PoseLandmark[];
@@ -561,10 +560,10 @@ function drawBody(
   }
 
   drawing.drawConnectors(ctx, filteredLandmarks, Holistic.POSE_CONNECTIONS, {
-    color: "#00FF00",
+    color: "#CC0000",
   });
   drawing.drawLandmarks(ctx, filteredLandmarks, {
-    color: "#00FF00",
+    color: "#CC0000",
     fillColor: "#FF0000",
   });
 }
@@ -576,13 +575,16 @@ function drawNeck(
   // get the left and right shoulder landmarks
   const leftShoulder = landmarks[Holistic.POSE_LANDMARKS.LEFT_SHOULDER];
   const rightShoulder = landmarks[Holistic.POSE_LANDMARKS.RIGHT_SHOULDER];
-  const head = landmarks[Holistic.POSE_LANDMARKS.NOSE];
+  const nose = landmarks[Holistic.POSE_LANDMARKS.NOSE];
+  //lower the nose by a percentage to react to the chin
+  nose.y = nose.y + 0.1;
+
   // draw a vertical line between the two shoulders to the head
   ctx.beginPath();
   const x = (leftShoulder.x + rightShoulder.x) / 2;
   const y = (leftShoulder.y + rightShoulder.y) / 2;
   ctx.moveTo(x * ctx.canvas.width, y * ctx.canvas.height);
-  ctx.lineTo(head.x * ctx.canvas.width, head.y * ctx.canvas.height);
+  ctx.lineTo(nose.x * ctx.canvas.width, nose.y * ctx.canvas.height);
   ctx.strokeStyle = lineColor;
   ctx.stroke();
 }
@@ -623,10 +625,10 @@ function drawFace(
   landmarks: PoseLandmark[],
   ctx: CanvasRenderingContext2D
 ): void {
-  drawing.drawConnectors(ctx, landmarks, Holistic.FACEMESH_TESSELATION, {
-    color: "#C0C0C070",
-    lineWidth: 1,
-  });
+  //   drawing.drawConnectors(ctx, landmarks, Holistic.FACEMESH_TESSELATION, {
+  //     color: "#C0C0C070",
+  //     lineWidth: 1,
+  //   });
   drawing.drawConnectors(ctx, landmarks, Holistic.FACEMESH_RIGHT_EYE, {
     color: "#FF3030",
   });
@@ -650,7 +652,7 @@ function drawFace(
 function drawConnect(
   connectors: PoseLandmark[][],
   ctx: CanvasRenderingContext2D,
-  color = "#00FF00"
+  color = "#CC0000"
 ): void {
   for (const connector of connectors) {
     const from = connector[0];
@@ -679,7 +681,7 @@ function drawElbowHandsConnection(
   ctx.lineWidth = 5;
 
   if (pose.rightHandLandmarks) {
-    ctx.strokeStyle = "#00FF00";
+    ctx.strokeStyle = "#CC0000";
     drawConnect(
       [
         [
@@ -713,6 +715,8 @@ export function draw(
   if (!ctx) return;
   ctx.save();
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.fillStyle = "black";
+  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   if (drawImage && pose.image) {
     ctx.drawImage(pose.image, 0, 0, ctx.canvas.width, ctx.canvas.height);
   }
@@ -720,15 +724,15 @@ export function draw(
   if (pose.poseLandmarks) {
     drawBody(pose.poseLandmarks, ctx);
     drawElbowHandsConnection(pose as Pose, ctx);
-    drawNeck(pose.poseLandmarks, ctx, "#00FFFF");
+    drawNeck(pose.poseLandmarks, ctx, "#CC0000");
   }
 
   if (pose.leftHandLandmarks) {
-    drawHand(pose.leftHandLandmarks, ctx, "#CC0000", "#FF0000", "#00FF00");
+    drawHand(pose.leftHandLandmarks, ctx, "#CC0000", "#FF0000", "#CC0000");
   }
 
   if (pose.rightHandLandmarks) {
-    drawHand(pose.rightHandLandmarks, ctx, "#00CC00", "#00FF00", "#FF0000");
+    drawHand(pose.rightHandLandmarks, ctx, "#CC0000", "#CC0000", "#FF0000");
   }
 
   if (pose.faceLandmarks) {
