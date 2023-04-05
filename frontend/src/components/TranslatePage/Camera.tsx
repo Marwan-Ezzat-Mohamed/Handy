@@ -51,11 +51,17 @@ type CameraProps = {
 function Camera({ startRef, setPrediction }: CameraProps) {
   const [model, setModel] = useAtom(modelAtom);
   const [results, setResults] = useState<null | Results[]>([]);
-
+  const [loading, setLoading] = useState(false);
   const [predict, setPredict] = useState(false);
 
   useEffect(() => {
-    startPrediction();
+    const run = async () => {
+      setLoading(true);
+      const data = await startPrediction();
+      setPredict(data!);
+      setLoading(false);
+    };
+    run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [predict]);
 
@@ -68,14 +74,11 @@ function Camera({ startRef, setPrediction }: CameraProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   async function startPrediction() {
-
     if (results && results.length >= 15) {
       const filteredResults = results.filter((result) => {
         const extractedKeypoints = extractKeypoints(result);
-        //check if the sum of the keypoints is 0
         const sum = extractedKeypoints.reduce((a, b) => a + b, 0);
-       return sum === 0 ? false : true;
-
+        return sum === 0 ? false : true;
       });
       const chunks = chunkArray(filteredResults, 15);
 
@@ -108,7 +111,15 @@ function Camera({ startRef, setPrediction }: CameraProps) {
           //console.log(data);
           res.label = index;
           res.confidence = max;
-          setPrediction((prev) => {
+          const array: any = [];
+          for (let i = 0; i < labels.length; i++) {
+            const word =
+              labelMap[labels[i].toString() as keyof typeof labelMap];
+            if (array[array.length - 1] !== word) {
+              array.push(word);
+            }
+          }
+          /*setPrediction((prev) => {
             const newSet = [...prev];
             labels.forEach((label: number) => {
               const word = labelMap[label.toString() as keyof typeof labelMap];
@@ -118,7 +129,8 @@ function Camera({ startRef, setPrediction }: CameraProps) {
             });
 
             return newSet;
-          });
+          });*/
+          return array;
         });
       }
       setResults([]);
