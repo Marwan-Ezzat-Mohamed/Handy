@@ -21,6 +21,8 @@ export interface PoseLandmark {
   visibility?: number;
 }
 
+export const FRAMES_FOR_PREDICTION = 20;
+
 export const labelMap = {
   "0": "dance",
   "1": "loud",

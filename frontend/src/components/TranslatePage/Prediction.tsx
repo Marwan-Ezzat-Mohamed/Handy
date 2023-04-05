@@ -3,8 +3,9 @@ import Button from "@mui/material/Button";
 type PredictionProps = {
   startRef: React.MutableRefObject<boolean>;
   prediction: string[];
+  loading: boolean;
 };
-function Prediction({ startRef, prediction }: PredictionProps) {
+function Prediction({ startRef, prediction, loading }: PredictionProps) {
   const [startRecording, setStartRecording] = useState<boolean>(false);
   return (
     <div className="flex h-full flex-col bg-white p-2 text-center ">
@@ -26,7 +27,7 @@ function Prediction({ startRef, prediction }: PredictionProps) {
           }}
           color="warning"
         >
-          {startRecording ? "Stop" : "Start"}
+          {loading ? "Loading" : startRecording ? "Stop" : "Start"}
         </Button>
       </div>
     </div>
