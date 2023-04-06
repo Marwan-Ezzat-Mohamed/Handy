@@ -125,7 +125,7 @@ def load_features(actions: list, label_map: dict, data_type: str = "train") -> t
 
 def create_model(actions):
 
-    multi = 0.0625
+    multi = 1
     model = Sequential()
     model.add(Conv1D(128*multi, kernel_size=2, activation='elu',
               input_shape=(FRAMES_PER_VIDEO, 126)))
@@ -150,7 +150,7 @@ def create_model(actions):
     model.add(Dense(256*multi, activation='elu'))
     model.add(Dropout(0.5))
     model.add(Dense(actions.shape[0], activation='softmax'))
-    # model.load_weights('./models.h5')
+    model.load_weights('./models.h5')
     return model
 
 
