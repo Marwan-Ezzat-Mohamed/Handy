@@ -4,6 +4,12 @@ import debounce from "lodash/debounce";
 function TextToSign() {
   const [text, setText] = useState<string[]>([]);
 
+  const filterSearchText = (text: string) => {
+    return text
+      .replace(/[^a-zA-Z0-9 ]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  };
   const handleSearch = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       setText(e.target.value.split(" "));

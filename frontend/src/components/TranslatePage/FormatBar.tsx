@@ -20,30 +20,44 @@ function FormatBar() {
 
   const arr = [
     <TextField
-      style={{ color: "#683aff" }}
+      style={{
+        border: "1px solid #683aff",
+        borderRadius: "6px",
+      }}
       id="input-with-icon-textfield"
-      value="Sign"
+      value=""
       key="Sign"
       InputProps={{
         readOnly: true,
         startAdornment: (
-          <InputAdornment position="start">
-            <SignLanguageIcon style={{ color: "#683aff" }} />
+          <InputAdornment
+            style={{ fontWeight: "bold", color: "#683aff" }}
+            position="start"
+          >
+            <SignLanguageIcon />
+            Sign
           </InputAdornment>
         ),
       }}
       variant="outlined"
     />,
     <TextField
-      style={{ color: "#683aff" }}
+      style={{
+        border: "1px solid #683aff",
+        borderRadius: "6px",
+      }}
       id="input-with-icon-textfield"
-      value="Text"
+      value=""
       key="Text"
       InputProps={{
         readOnly: true,
         startAdornment: (
-          <InputAdornment style={{ color: "#683aff" }} position="start">
-            <TextFormatIcon style={{ color: "#683aff" }} fontSize="large" />
+          <InputAdornment
+            style={{ fontWeight: "bold", color: "#683aff" }}
+            position="start"
+          >
+            <TextFormatIcon fontSize="large" />
+            Text
           </InputAdornment>
         ),
       }}
