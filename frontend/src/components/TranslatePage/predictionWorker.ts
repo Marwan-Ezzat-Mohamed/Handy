@@ -40,10 +40,15 @@ function extractKeypoints(results: PredictType): number[] {
   const final = lh.concat(rh);
   return final;
 }
-
+let model: tf.LayersModel | null = null;
 async function startPrediction(results: PredictType[]): Promise<string[]> {
   tf.setBackend("cpu");
-  const model = await tf.loadLayersModel("/model.json");
+  if (!model) {
+    console.log("loading model");
+    console.time("model");
+    model = await tf.loadLayersModel("/model.json");
+    console.timeEnd("model");
+  }
   if (results && results.length >= FRAMES_FOR_PREDICTION) {
     //we have an array that have FRAMES_FOR_PREDICTION * 1.5
     // we want to have am array that have permutations of results of size FRAMES_FOR_PREDICTION

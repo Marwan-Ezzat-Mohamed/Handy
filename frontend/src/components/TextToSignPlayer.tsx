@@ -8,7 +8,11 @@ interface TextToSignPlayerProps {
 const DEFAULT_PLAYBACK_SPEED = 1;
 
 const TextToSignPlayer = ({ text }: TextToSignPlayerProps) => {
+  console.log({
+    text,
+  });
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [loading, setLoading] = useState<boolean>(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(
     DEFAULT_PLAYBACK_SPEED
   );
@@ -17,10 +21,12 @@ const TextToSignPlayer = ({ text }: TextToSignPlayerProps) => {
 
   useEffect(() => {
     async function getFrames() {
+      setLoading(true);
       const generatedVideoUrl = await drawFramesAndCreateVideo(
         text,
         DEFAULT_PLAYBACK_SPEED
       );
+      setLoading(false);
       setVideoUrl(generatedVideoUrl);
     }
     getFrames();
@@ -31,12 +37,19 @@ const TextToSignPlayer = ({ text }: TextToSignPlayerProps) => {
     videoRef.current.playbackRate = playbackSpeed;
   }, [playbackSpeed]);
 
+  if (loading)
+    return (
+      <div className="flex items-center justify-center ">
+        <progress className="progress w-56"></progress>
+      </div>
+    );
+
   return (
-    <div className="flex h-full flex-col items-center ">
+    <div className="flex h-full flex-col items-center">
       <div
-        className="rounded-x flex flex-grow flex-col items-center justify-center text-white"
+        className="flex flex-grow flex-col  rounded-xl text-white"
         style={{
-          height: "clamp(150px, 90%, 95%)",
+          height: "clamp(150px, 90%, 520px)",
         }}
       >
         <video

@@ -8,6 +8,9 @@ module.exports = {
         violet: "#9194CE",
         red: "#F492A0",
         blue: "#3E479B",
+        yellow: {
+          50: "#fff6df",
+        },
       },
       screens: {
         xs: "475px",

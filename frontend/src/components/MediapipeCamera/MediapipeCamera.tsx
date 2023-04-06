@@ -36,8 +36,6 @@ function MediapipeCamera({
     []
   );
 
-  let activeEffect = "mask";
-
   const onMediapipeResults = (results: Holistic.Results): void => {
     onResult(results);
     if (!canvasRef.current) return;
