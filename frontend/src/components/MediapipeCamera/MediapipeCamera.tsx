@@ -117,7 +117,7 @@ function MediapipeCamera({
   };
 
   return (
-    <div className="flex h-full flex-col items-center justify-center rounded-xl bg-slate-100">
+    <div className="flex h-full flex-col items-center justify-center rounded-xl bg-white">
       <canvas
         className="flex aspect-video h-full rounded-xl"
         ref={canvasRef}

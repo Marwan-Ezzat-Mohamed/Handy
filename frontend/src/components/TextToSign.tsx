@@ -7,8 +7,9 @@ function TextToSign() {
 
   const filterSearchText = (text: string) => {
     return text
-      .replace(/[^a-zA-Z0-9 ]/g, "")
-      .replace(/\s+/g, " ")
+      .replace("the", "")
+      .replace("is", " ")
+      .replace("dancing", "dance")
       .trim();
   };
   const handleSearch = useCallback(
@@ -23,12 +24,15 @@ function TextToSign() {
     <div className="grid  h-1/2 grid-cols-1  justify-center gap-4 px-8 md:grid-cols-2">
       <div className="flex justify-center">
         <textarea
-          className="textarea aspect-video h-full w-full rounded-lg border border-slate-300 bg-slate-100 shadow-sm focus:border-slate-400 focus:ring focus:ring-slate-200 focus:ring-opacity-50"
+          style={{
+            color: "#000000",
+            backgroundColor: "#fff6df",
+            resize: "none",
+            maxHeight: "400px",
+          }}
+          className="textarea aspect-video h-full w-full rounded-lg"
           placeholder="Enter text to translate"
           onChange={debouncedHandleSearch}
-          style={{
-            resize: "none",
-          }}
         />
       </div>
       <div className="flex justify-center">

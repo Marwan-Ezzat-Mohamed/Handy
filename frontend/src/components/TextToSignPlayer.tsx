@@ -52,7 +52,7 @@ const TextToSignPlayer = ({ text }: TextToSignPlayerProps) => {
         />
       </div>
 
-      <div className="">
+      <div className="py-2 ">
         <input
           type="range"
           min="0.5"
@@ -64,7 +64,7 @@ const TextToSignPlayer = ({ text }: TextToSignPlayerProps) => {
           className="range range-info"
           step="0.5"
         />
-        <div className="flex  justify-between space-x-4 px-2 text-xs">
+        <div className="flex justify-between  space-x-4 px-2 text-xs">
           <label className="text-xl"> 0.5x</label>
           <label className="text-xl"> 1x</label>
           <label className="text-xl"> 1.5x</label>
