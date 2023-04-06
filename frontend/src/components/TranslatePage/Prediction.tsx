@@ -13,7 +13,7 @@ function Prediction({ startRef, prediction, loading }: PredictionProps) {
       style={{ backgroundColor: "#FFFFFF" }}
       className="flex h-full flex-col p-2 text-center "
     >
-      <div className="translation-box flex flex-grow flex-col items-center justify-between rounded-xl text-white">
+      <div className="translation-box flex flex-grow flex-col items-center justify-between rounded-xl text-black">
         <label
           style={{
             fontSize: 24,

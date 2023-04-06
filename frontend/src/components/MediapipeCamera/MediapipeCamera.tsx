@@ -117,10 +117,7 @@ function MediapipeCamera({
   };
 
   return (
-    <div
-      style={{ backgroundColor: "#ffffff" }}
-      className="flex h-full flex-col items-center justify-center rounded-xl"
-    >
+    <div className="flex h-full flex-col items-center justify-center rounded-xl bg-slate-100">
       <canvas
         className="flex aspect-video h-full rounded-xl"
         ref={canvasRef}
