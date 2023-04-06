@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Button from "@mui/material/Button";
+import "./Prediction.css";
 type PredictionProps = {
   startRef: React.MutableRefObject<boolean>;
   prediction: string[];
@@ -8,8 +9,11 @@ type PredictionProps = {
 function Prediction({ startRef, prediction, loading }: PredictionProps) {
   const [startRecording, setStartRecording] = useState<boolean>(false);
   return (
-    <div className="flex h-full flex-col bg-white p-2 text-center ">
-      <div className="flex flex-grow flex-col items-center justify-between rounded-xl bg-indigo-600 text-white">
+    <div
+      style={{ backgroundColor: "#FFFFFF" }}
+      className="flex h-full flex-col p-2 text-center "
+    >
+      <div className="translation-box flex flex-grow flex-col items-center justify-between rounded-xl text-black">
         <label
           style={{
             fontSize: 24,

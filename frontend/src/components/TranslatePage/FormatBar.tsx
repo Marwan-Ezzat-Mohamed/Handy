@@ -20,6 +20,7 @@ function FormatBar() {
 
   const arr = [
     <TextField
+      style={{ color: "#683aff" }}
       id="input-with-icon-textfield"
       value="Sign"
       key="Sign"
@@ -27,21 +28,22 @@ function FormatBar() {
         readOnly: true,
         startAdornment: (
           <InputAdornment position="start">
-            <SignLanguageIcon color="primary" />
+            <SignLanguageIcon style={{ color: "#683aff" }} />
           </InputAdornment>
         ),
       }}
       variant="outlined"
     />,
     <TextField
+      style={{ color: "#683aff" }}
       id="input-with-icon-textfield"
       value="Text"
       key="Text"
       InputProps={{
         readOnly: true,
         startAdornment: (
-          <InputAdornment position="start">
-            <TextFormatIcon color="primary" fontSize="large" />
+          <InputAdornment style={{ color: "#683aff" }} position="start">
+            <TextFormatIcon style={{ color: "#683aff" }} fontSize="large" />
           </InputAdornment>
         ),
       }}
@@ -56,7 +58,7 @@ function FormatBar() {
     <div className="flex w-full flex-row justify-center px-2 py-5">
       <div className="flex">
         {arr[first]}
-        <IconButton color="primary" onClick={switchHandler}>
+        <IconButton style={{ color: "#683aff" }} onClick={switchHandler}>
           <SwapHorizIcon />
         </IconButton>
         {arr[second]}

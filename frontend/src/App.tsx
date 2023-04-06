@@ -7,7 +7,7 @@ import FormatBar from "./components/TranslatePage/FormatBar";
 class App extends React.Component {
   render() {
     return (
-      <div className="flex h-screen w-screen flex-col  bg-white">
+      <div className="main-background flex h-screen w-screen flex-col bg-white">
         <BrowserRouter>
           <FormatBar />
           <Routes>

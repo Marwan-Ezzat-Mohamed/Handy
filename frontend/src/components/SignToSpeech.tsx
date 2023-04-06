@@ -8,8 +8,8 @@ function SigntoSpeech() {
   const startRef = React.useRef(false);
 
   return (
-    <div className=" h-full w-full flex-grow  justify-center bg-white sm:block md:flex">
-      <div className="flex h-1/2 max-w-2xl flex-col bg-black md:w-1/2">
+    <div className=" h-full w-full flex-grow  justify-center sm:block md:flex">
+      <div className="flex h-1/2 max-w-2xl flex-col md:w-1/2">
         <Camera
           startRef={startRef}
           setPrediction={setPrediction}
