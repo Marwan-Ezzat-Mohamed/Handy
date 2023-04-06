@@ -26,7 +26,7 @@ const Camera = ({ startRef, setPrediction, setLoading }: CameraProps) => {
       //reset the prediction
       //setPrediction([]);
     }
-    if (resultsRef.current.length >= FRAMES_FOR_PREDICTION) {
+    if (resultsRef.current.length >= FRAMES_FOR_PREDICTION * 1.5) {
       predictFrames(structuredClone(resultsRef.current));
       resultsRef.current = resultsRef.current.slice(FRAMES_FOR_PREDICTION);
     }

@@ -52,6 +52,14 @@ def plot_action_accuracy(model, X_test, y_test, actions):
         action_acc[action] = accuracy_score(
             y_true[action_indices], y_pred[action_indices])
 
+    action_acc_map = sorted(
+        action_acc.items(), key=lambda x: x[1], reverse=True)
+
+    # display the top 50 actions with highest accuracy
+    # print only the action name
+
+    print(action_acc_map)
+
     # Plot the accuracy for each action
     plt.bar(actions, action_acc.values())
     plt.title('Model Accuracy by Action')
@@ -77,10 +85,21 @@ def main():
 
     # Create the model
     model = create_model(actions)
-    layered_view(model, legend=True, to_file='model.png')
+    # layered_view(model, legend=True, to_file='model.png')
 
     plot_action_accuracy(model, X_test, y_test, actions)
 
+    # y_pred = np.argmax(model.predict(X_test), axis=-1)
+    # # get the accuracy of each action in the test set
+    # accuracy_map = {}
+    # for i, action in enumerate(actions):
+    #     action_indices = np.where(y_test == i)[0]
+    #     accuracy_map[action] = accuracy_score(
+
+    # # print top 50 actions with highest accuracy
+    # sorted_accuracy_map = sorted(
+    #     accuracy_map.items(), key=lambda x: x[1], reverse=True)
+    # print(sorted_accuracy_map[:50])
     # # Train the model
     # history = model.fit(X_train, y_train, validation_data=(
     #     X_test, y_test), epochs=10, batch_size=32)
