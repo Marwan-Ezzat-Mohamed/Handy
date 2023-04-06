@@ -1,12 +1,18 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import SignLanguageIcon from "@mui/icons-material/SignLanguage";
 import TextFormatIcon from "@mui/icons-material/TextFormat";
 import { IconButton, InputAdornment } from "@mui/material";
 function FormatBar() {
-  const [format, setFormat] = useState<string>("Sign");
+  //get current location
+  //if location is / then set format to sign
+  //if location is /texttosign then set format to text
+  const location = useLocation();
+  const [format, setFormat] = useState<string>(
+    location.pathname === "/texttosign" ? "Text" : "Sign"
+  );
   const navigate = useNavigate();
   const switchHandler = () => {
     if (format === "Sign") {
