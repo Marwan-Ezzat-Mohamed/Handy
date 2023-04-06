@@ -12,6 +12,9 @@ module.exports = {
       screens: {
         xs: "475px",
       },
+      gridTemplateColumns: {
+        fluid: "repeat(auto-fit, minmax(20rem, 1fr))",
+      },
     },
     screens: {
       sm: "375px",
