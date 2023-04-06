@@ -45,7 +45,7 @@ const Camera = ({ startRef, setPrediction, setLoading }: CameraProps) => {
     });
   };
   return (
-    <div className="flex w-full flex-grow flex-col  bg-white p-2 text-center">
+    <div className="flex w-full flex-grow flex-col p-2 text-center">
       <MediapipeCamera onResult={onResults} />
     </div>
   );

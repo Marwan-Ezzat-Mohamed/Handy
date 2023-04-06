@@ -4,7 +4,8 @@ import { useMemo } from "react";
 
 import { useRef, useEffect, useState } from "react";
 import { connect, draw } from "../../utils";
-import { Button, Upload } from "antd";
+import "../TranslatePage/Camera.css";
+import { Switch, Space, Upload } from "antd";
 import { UploadChangeParam, UploadFile } from "antd/es/upload";
 
 let holistic: Holistic.Holistic | null = null;
@@ -116,42 +117,47 @@ function MediapipeCamera({
   };
 
   return (
-    <div className="flex h-full flex-col items-center justify-center rounded-xl">
+    <div
+      style={{ backgroundColor: "#ffffff" }}
+      className="flex h-full flex-col items-center justify-center rounded-xl"
+    >
       <canvas
-        className="flex aspect-video rounded-xl"
+        className="flex aspect-video h-full rounded-xl"
         ref={canvasRef}
         style={{
-          maxHeight: "300px",
+          maxHeight: "400px",
           maxWidth: "100%",
           minWidth: "100%",
         }}
       />
 
-      <div>
-        <button
-          className="bg-slate-900 text-white"
+      <div style={{ marginTop: "3px" }}>
+        <Space
+          className="switch"
+          direction="vertical"
           onClick={() => {
             setUseCamera((prev) => !prev);
           }}
         >
-          {!useCamera ? "Using Video" : "Using Camera"}
-        </button>
-
-        <Upload
-          className="mt-3 mb-3"
-          accept=".mp4"
-          maxCount={1}
-          customRequest={dummyRequest}
-          onChange={handleChange}
-          onRemove={() => {
-            console.log("remove");
-            setUploadedVideo(null);
-            videoRef.current.srcObject = null;
-            videoRef.current.src = null;
-          }}
-        >
-          <Button>Upload</Button>
-        </Upload>
+          <Switch checkedChildren="Video" unCheckedChildren="Camera" />
+        </Space>
+        {!useCamera && (
+          <Upload
+            className="mt-3 mb-3"
+            accept=".mp4"
+            maxCount={1}
+            customRequest={dummyRequest}
+            onChange={handleChange}
+            onRemove={() => {
+              console.log("remove");
+              setUploadedVideo(null);
+              videoRef.current.srcObject = null;
+              videoRef.current.src = null;
+            }}
+          >
+            <button className="upload-button">Upload</button>
+          </Upload>
+        )}
       </div>
       <video
         style={{
