@@ -2,8 +2,8 @@ import os
 import numpy as np
 import tensorflow as tf
 import json
-from tensorflow.keras.layers import Conv1D, Dropout, BatchNormalization, Flatten, Dense, AveragePooling1D
-
+from tensorflow.keras.layers import Conv1D, Dropout, BatchNormalization, Flatten, Dense, AveragePooling1D, MaxPooling1D, LSTM, Lambda, Input, Bidirectional, GlobalAveragePooling1D, GlobalMaxPooling1D
+import pickle
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.models import Sequential
@@ -11,8 +11,9 @@ import matplotlib.pyplot as plt
 from keras.callbacks import EarlyStopping
 
 import shutil
+from keras import regularizers, Model
 
-from helper import make_test_val_data
+from helper import split_data
 
 
 # mkan el folder elly 3mlna fe save ll features
@@ -124,40 +125,39 @@ def load_features(actions: list, label_map: dict, data_type: str = "train") -> t
 
 
 def create_model(actions):
+    base = 32
 
-    multi = 1
-    model = Sequential()
-    model.add(Conv1D(128*multi, kernel_size=2, activation='elu',
-              input_shape=(FRAMES_PER_VIDEO, 126)))
-    model.add(BatchNormalization())
-    model.add(AveragePooling1D(pool_size=2))
-    model.add(Dropout(0.5))
+    input_shape = (FRAMES_PER_VIDEO, 126)
+    # Define the input layer
+    input_layer = Input(shape=input_shape)
 
-    model.add(Conv1D(256*multi, kernel_size=2, activation='elu'))
-    model.add(BatchNormalization())
-    model.add(AveragePooling1D(pool_size=2))
-    model.add(Dropout(0.5))
+    # Add Bidirectional LSTM layer
+    lstm_layer = Bidirectional(LSTM(base, return_sequences=True))(input_layer)
+    lstm_layer = Dropout(0.5)(lstm_layer)
+    lstm_layer = Bidirectional(LSTM(2*base))(lstm_layer)
+    lstm_layer = Dropout(0.5)(lstm_layer)
 
-    model.add(Conv1D(512*multi, kernel_size=2, activation='elu'))
-    model.add(BatchNormalization())
-    model.add(AveragePooling1D(pool_size=2))
-    model.add(Dropout(0.5))
+    # Add Dense layers
+    dense_layer = Dense(4*base, activation='relu')(lstm_layer)
+    dense_layer = Dropout(0.5)(dense_layer)
+    dense_layer = Dense(2*base, activation='tanh')(dense_layer)
+    dense_layer = Dropout(0.5)(dense_layer)
 
-    model.add(Flatten())
+    # Define the output layer
+    output_layer = Dense(actions.shape[0], activation='softmax')(dense_layer)
 
-    model.add(Dense(512*multi, activation='elu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(256*multi, activation='elu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(actions.shape[0], activation='softmax'))
-    model.load_weights('./models.h5')
+    # Define the model
+    model = Model(inputs=input_layer, outputs=output_layer)
+    opt = Adam(learning_rate=0.001)
+    model.compile(optimizer=opt, loss='categorical_crossentropy',
+                  metrics=['categorical_accuracy', 'accuracy'])
+
+    # model.load_weights('./models.h5')
     return model
 
 
 def train_model(model, X_train, y_train, X_val, y_val, batch_size=16):
-    adam = Adam(lr=0.0001)
-    model.compile(loss='categorical_crossentropy',
-                  optimizer=adam, metrics=['accuracy'])
+
     early_stopping = EarlyStopping(monitor='val_loss', patience=300)
     tensorboard = tf.keras.callbacks.TensorBoard(
         log_dir=os.path.join("logs", 'test'))
@@ -167,7 +167,7 @@ def train_model(model, X_train, y_train, X_val, y_val, batch_size=16):
     )
 
     callbacks_list = [checkpoint, tensorboard, early_stopping]
-    history = model.fit(X_train, y_train, epochs=10, batch_size=batch_size,
+    history = model.fit(X_train, y_train, epochs=20, batch_size=batch_size,
                         validation_data=(X_val, y_val), verbose=1, callbacks=callbacks_list, workers=4)
     return history
 
@@ -178,6 +178,7 @@ def show_test_results(model, X_test, y_test):
 
     # Show results
     y_pred = model.predict(X_test)
+    print(y_pred)
     y_pred = np.argmax(y_pred, axis=1)
     y_test = np.argmax(y_test, axis=1)
     test_accuracy = 100 * np.sum(y_pred == y_test)/y_test.shape[0]
@@ -205,102 +206,59 @@ def get_word(word):
 
 
 if __name__ == '__main__':
-    # if not os.path.exists(TRAIN_DATA_PATH):
-    #     if os.path.exists(TEST_DATA_PATH):
-    #         print("deleting old test data...")
-    #         shutil.rmtree(TEST_DATA_PATH)
-    #     if os.path.exists(VAL_DATA_PATH):
-    #         print("deleting old val data...")
-    #         shutil.rmtree(VAL_DATA_PATH)
 
-    #     make_test_val_data(limit=1)
-    #     # delete the old train data if exists
-    #     if os.path.exists(TRAIN_DATA_PATH):
-    #         print("deleting old train data...")
-    #         shutil.rmtree(TRAIN_DATA_PATH)
+    actions = []
+    actions_count = {}
+    limit = 0
+    actions = os.listdir(TRAIN_DATA_PATH)
+    actions = np.array(actions)
 
-    #     split_val_to_val_and_test()
+    # # load label map from json file
+    # with open(LABEL_MAP_PATH) as fp:
+    #     label_map = json.load(fp)
 
-    # actions = []
-    # actions_count = {}
-    # limit = 0
-    # actions = os.listdir(TRAIN_DATA_PATH)
-    # actions = np.array(actions)
-    # print("we have {} actions".format(actions.shape[0]))
+    # {"0":"action1", "1":"action2", "2":"action3"}
 
-    # load label_map from json file
-    label_map = {}
-    with open(LABEL_MAP_PATH) as fp:
-        label_map = json.load(fp)
-    actions = np.array(list(label_map.keys()))
+    # actions = np.array(list(label_map.values()))
     print("we have {} actions".format(actions.shape[0]))
-    # label_map = {label: num for num, label in enumerate(actions)}
 
-    # # delete the old json file if exists
-    # if os.path.exists(LABEL_MAP_PATH):
-    #     os.remove(LABEL_MAP_PATH)
+    label_map = {label: num for num, label in enumerate(actions)}
 
-    # # save label map into json file reversed and
-    # with open(LABEL_MAP_PATH, 'w') as fp:
-    #     json.dump({v: k for k, v in label_map.items()}, fp)
+    # delete the old json file if exists
+    if os.path.exists(LABEL_MAP_PATH):
+        os.remove(LABEL_MAP_PATH)
+
+    # save label map into json file reversed and
+    with open(LABEL_MAP_PATH, 'w') as fp:
+        json.dump({v: k for k, v in label_map.items()}, fp)
 
     # load x_test and y_test and x_val and y_val and x_train and y_train
 
-    # X_train, y_train = load_features(actions, label_map, data_type='train')
+    X_train, y_train = load_features(actions, label_map, data_type='train')
     X_test, y_test = load_features(actions, label_map, data_type='test')
-    # X_val, y_val = load_features(actions, label_map, data_type='val')
+    X_val, y_val = load_features(actions, label_map, data_type='val')
     print("loaded x_test, y_test, x_val, y_val, x_train, y_train")
 
     batch_sizes = [
 
-        actions.shape[0]//4,
+        actions.shape[0],
+
     ]
-
-    # # array that start from 10 to 100
-    # min_videos = []
-    # min_vids_map = {}
-    # for i in range(40, 41):
-    #     if os.path.exists(TEST_DATA_PATH):
-    #         print("deleting old test data...")
-    #         shutil.rmtree(TEST_DATA_PATH)
-    #     if os.path.exists(VAL_DATA_PATH):
-    #         print("deleting old val data...")
-    #         shutil.rmtree(VAL_DATA_PATH)
-
-    #     make_test_val_data(min_videos_per_action=i)
-    #     # delete the old train data if exists
-    #     if os.path.exists(TRAIN_DATA_PATH):
-    #         print("deleting old train data...")
-    #         shutil.rmtree(TRAIN_DATA_PATH)
-
-    #     make_train_data(use_val=True)
-    #     actions = os.listdir(TRAIN_DATA_PATH)
-    #     actions = np.array(actions)
-    #     print("we have {} actions".format(actions.shape[0]))
-
-    #     label_map = {label: num for num, label in enumerate(actions)}
-    #     X_train, y_train = load_features(actions, label_map, data_type='train')
-    #     X_test, y_test = load_features(actions, label_map, data_type='test')
-    #     X_val, y_val = load_features(actions, label_map, data_type='val')
-    #     print("loaded x_test, y_test, x_val, y_val, x_train, y_train")
-    #     model = create_model(actions)
-    #     history = train_model(model, X_train, y_train,
-    #                           X_val, y_val, batch_size=batch_sizes[0])
-    #     accuracy = show_test_results(model, X_test, y_test)
-    #     min_vids_map["acc:"+str(i) + " num_of_actions:" +
-    #                  str(actions.shape[0])] = accuracy
-    # print(min_vids_map)
 
     # sort the batch sizes
     batch_sizes.sort()
     batch_sizes_accuracy = {}
     for batch_size in batch_sizes:
         model = create_model(actions)
-        # model.load_weights("./action0.23-accuracy0.94.h5")
-        # history = train_model(model, X_train, y_train,
-        #                       X_val, y_val, batch_size=batch_size)
+
+        history = train_model(model, X_train, y_train,
+                              X_val, y_val, batch_size=batch_size)
+        # save the history to a file using pickle
+        with open('history.pkl', 'wb') as f:
+            pickle.dump(history.history, f)
         accuracy = show_test_results(model, X_test, y_test)
         batch_sizes_accuracy[batch_size] = accuracy
+        print(batch_sizes_accuracy)
         # model.save("./models.h5")
 
     print(batch_sizes_accuracy)

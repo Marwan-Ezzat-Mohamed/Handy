@@ -6,7 +6,7 @@ from tqdm import tqdm
 import numpy as np
 
 
-def split_val_to_val_and_test():
+def split_val_to_val_and_train():
     # split the validation data into validation and test data
     # the validation data will be used to tra
     # the test data will be used to test the model
@@ -26,25 +26,25 @@ def split_val_to_val_and_test():
             filenames.add(filename)
 
         # split the set into two sets
-        test_percent = 0.6
-        test_filenames = set(random.sample(filenames, int(
-            len(filenames)*test_percent)))
+        train_percent = 0.8
+        train_filenames = set(random.sample(filenames, int(
+            len(filenames)*train_percent)))
 
         # create the test folder
-        test_folder = os.path.join('MP_Train', word_folder)
-        os.makedirs(test_folder, exist_ok=True)
+        train_folder = os.path.join('MP_Train', word_folder)
+        os.makedirs(train_folder, exist_ok=True)
 
         # move the test videos to the test folder
 
         for video in os.listdir(os.path.join(parent_dir, word_folder)):
             filename = video.split('_moving')[0]
-            if filename in test_filenames:
+            if filename in train_filenames:
                 shutil.move(os.path.join(parent_dir, word_folder, video),
-                            os.path.join(test_folder, video))
+                            os.path.join(train_folder, video))
 
 
 if __name__ == '__main__':
-    split_val_to_val_and_test()
+    split_val_to_val_and_train()
     # # create an np array that have first 63 values as 1 and last 63 values as -1
     # array = np.ones((63))
     # array = np.concatenate((array, -1*array))

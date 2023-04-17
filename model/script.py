@@ -6,6 +6,7 @@ import shutil
 from tqdm import tqdm
 from mediapipeHelper import *
 import multiprocessing
+from vidaug import augmentors as va
 
 
 def convert_to_avcmp4(video_path):
