@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.metrics import confusion_matrix
-
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+import seaborn as sns
 # precision_recall_curve
 from sklearn.metrics import precision_recall_curve, average_precision_score, roc_curve, accuracy_score
 # import Model from keras
@@ -26,15 +26,12 @@ def plot_confusion_matrix(model, X_test, y_test, label_map, indices=None):
         if label_map[str(i)] not in relevant_actions:
             relevant_actions.append(label_map[str(i)])
 
-    # Calculate the confusion matrix for the relevant actions
+    # Generate the confusion matrix and calculate percentages
     cm = confusion_matrix(y_true, y_pred, labels=list(
         range(len(relevant_actions))))
-
-    # Plot the confusion matrix
-    plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
-    plt.colorbar()
-    plt.xticks(np.arange(len(relevant_actions)), relevant_actions, rotation=90)
-    plt.yticks(np.arange(len(relevant_actions)), relevant_actions)
+    cm_perc = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+    sns.heatmap(cm_perc, annot=True, cmap="Reds",
+                fmt=".1%", xticklabels=relevant_actions, yticklabels=relevant_actions)
     plt.xlabel('Predicted label')
     plt.ylabel('True label')
     plt.show()
@@ -67,6 +64,27 @@ def plot_action_accuracy(model, X_test, y_test, actions):
     plt.ylabel('Accuracy')
     plt.show()
 
+# display the loss and accuracy of the model
+
+
+def plot_loss_accuracy(history):
+    # Plot the loss and accuracy of the model
+    plt.plot(history.history['loss'], label='train')
+    plt.plot(history.history['val_loss'], label='test')
+    plt.title('Model Loss')
+    plt.ylabel('Loss')
+    plt.xlabel('Epoch')
+    plt.legend()
+    plt.show()
+
+    plt.plot(history.history['accuracy'], label='train')
+    plt.plot(history.history['val_accuracy'], label='test')
+    plt.title('Model Accuracy')
+    plt.ylabel('Accuracy')
+    plt.xlabel('Epoch')
+    plt.legend()
+    plt.show()
+
 
 def main():
     # Load the data
@@ -85,9 +103,21 @@ def main():
 
     # Create the model
     model = create_model(actions)
+
+    # history = model.fit(X_test, y_test, epochs=300, batch_size=100,
+    #                     validation_split=0.5, verbose=1)
+    # print(history.history.keys())
+    # plt.plot(history.history['loss'])
+    # plt.plot(history.history['val_loss'])
+    # plt.title('model loss')
+    # plt.ylabel('loss')
+    # plt.xlabel('epoch')
+    # plt.legend(['train', 'val'], loc='upper left')
+    # plt.show()
+
     # layered_view(model, legend=True, to_file='model.png')
 
-    plot_action_accuracy(model, X_test, y_test, actions)
+    # plot_action_accuracy(model, X_test, y_test, actions)
 
     # y_pred = np.argmax(model.predict(X_test), axis=-1)
     # # get the accuracy of each action in the test set
