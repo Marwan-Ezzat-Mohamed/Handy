@@ -6,6 +6,7 @@ import shutil
 from typing import List
 from tqdm import tqdm
 import numpy as np
+from DataAugmentation import DataAugmentation
 from mediapipeHelper import *
 import cv2
 import time
@@ -15,8 +16,6 @@ import istarmap
 
 class Dataset:
 
-    # static variables
-    resize_values = [1.2, 0.5, 1.4, 1.6, 1.8]
     features_output_folder_name = 'MP_DATA_NEW',
 
     def __init__(
@@ -24,13 +23,11 @@ class Dataset:
             dataset_folder_path='DATASETS',
             num_frames_per_video=20,
             features_output_folder_name='MP_DATA_NEW',
-            resize_values=[1.2, 0.5, 1.4, 1.6, 1.8],
             save_new_videos=True,
     ):
         if features_output_folder_name is not None:
             Dataset.features_output_folder_name = features_output_folder_name
-        if resize_values is not None:
-            Dataset.resize_values = resize_values
+
         self.dataset_folder_path = dataset_folder_path
         self.num_frames_per_video = num_frames_per_video
         self.all_videos_folder_name = 'all_vids'
@@ -39,10 +36,10 @@ class Dataset:
         self.save_new_videos = save_new_videos
 
     def process(self):
-        # self._put_all_videos_in_one_folder()
-        # self._remove_corrupted_videos()
-        # self._remove_none_moving_frames_from_videos()
-        # self._adjust_videos_total_frames()
+        self._put_all_videos_in_one_folder()
+        self._remove_corrupted_videos()
+        self._remove_none_moving_frames_from_videos()
+        self._adjust_videos_total_frames()
         self._increase_videos_by_data_augmentation()
         self._save_videos_per_actions_json()
         self._save_videos_features()
@@ -84,8 +81,12 @@ class Dataset:
             vids, self.num_frames_per_video, self.all_regulated_videos_folder_name)
 
     def _increase_videos_by_data_augmentation(self) -> None:
-        Dataset.increase_videos_by_data_augmentation(
-            self.all_regulated_videos_folder_name, self.save_new_videos)
+        # Create a DataAugmentation object.
+        data_augmentation = DataAugmentation(
+            Dataset.get_all_vids_paths(self.all_regulated_videos_folder_name), "augmented_videos")
+
+        # Augment all of the videos.
+        data_augmentation.augment_videos()
 
     def _save_videos_per_actions_json(self) -> None:
         Dataset.save_videos_per_actions_json(
@@ -93,7 +94,7 @@ class Dataset:
 
     def _save_videos_features(self) -> None:
         vids = Dataset.get_all_vids_paths(
-            self.all_regulated_videos_folder_name)
+            "augmented_videos")
         Dataset.save_videos_features(vids)
 
     @staticmethod
@@ -136,8 +137,12 @@ class Dataset:
             # split using the os separator
             output_path = video_path.split(os.sep)
             output_path[0] = Dataset.features_output_folder_name
-            output_path[-1] = output_path[-1].split('.')[0] + '.npy'
-            output_path = '/'.join(output_path)
+            # remove the file extension
+            output_path[-1] = os.path.splitext(output_path[-1])[0]
+            # add .npy
+            output_path[-1] += '.npy'
+            # join the path
+            output_path = os.sep.join(output_path)
             if not os.path.exists(os.path.dirname(output_path)):
                 os.makedirs(os.path.dirname(output_path), exist_ok=True)
             np.save(output_path, to_save)
@@ -271,148 +276,6 @@ class Dataset:
         out.release()
         # close all windows
         cv2.destroyAllWindows()
-
-    @staticmethod
-    def random_rotation(frame):
-        """
-        Applies a random rotation to a video frame with a maximum rotation angle of 20 degrees left or right.
-        """
-        # Generate a random angle between -7 and 7 degrees
-        max_angle = 7
-        angle = np.random.randint(-max_angle, max_angle)
-
-        # Get the height and width of the frame
-        height, width = frame.shape[:2]
-
-        # Calculate the rotation matrix
-        rotation_matrix = cv2.getRotationMatrix2D(
-            (width/2, height/2), angle, 1)
-
-        # Apply the rotation to the frame
-        rotated_frame = cv2.warpAffine(frame, rotation_matrix, (width, height))
-
-        return rotated_frame
-
-    @staticmethod
-    def rotate_video(input_path, vid_num="", save_video=True):
-        # output_path save as input_path but adding _rotated to the name and the angle
-        output_path = input_path[:-4] + '_rotated_' + str(vid_num) + '.mp4'
-        if os.path.exists(output_path):
-            return
-
-            # Open input video file
-        cap = cv2.VideoCapture(input_path)
-
-        # Get the codec information of input video
-        fourcc = int(cap.get(cv2.CAP_PROP_FOURCC))
-
-        # Get the frame rate of input video
-        fps = cap.get(cv2.CAP_PROP_FPS)
-
-        # Get the dimensions of input video
-        frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-        # Create VideoWriter object to write the rotated video
-        out = cv2.VideoWriter(output_path, fourcc, fps,
-                              (frame_width, frame_height))
-
-        while cap.isOpened():
-            # Read a frame from input video
-            ret, frame = cap.read()
-
-            if ret:
-                # Rotate the frame
-                rotated_frame = Dataset.random_rotation(frame)
-                # Write the rotated frame to output video
-                if save_video:
-                    out.write(rotated_frame)
-
-            else:
-                break
-
-        # Release input and output video
-        cap.release()
-        out.release()
-
-        # Close all windows
-        cv2.destroyAllWindows()
-
-    @staticmethod
-    def resize_video(input_path,  multiplier=2.0, save_video=True):
-        # output_path save as input_path but adding _resized to the name and the multiplier
-        output_path = input_path[:-4] + '_resized_' + str(multiplier) + 'x.mp4'
-        if os.path.exists(output_path):
-            return
-
-        # Open input video file
-        cap = cv2.VideoCapture(input_path)
-
-        # Get the codec information of input video
-        fourcc = int(cap.get(cv2.CAP_PROP_FOURCC))
-
-        # Get the frame rate of input video
-        fps = cap.get(cv2.CAP_PROP_FPS)
-
-        # Get the dimensions of input video
-        frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        width = math.ceil(frame_width * multiplier)
-        height = math.ceil(frame_height * multiplier)
-        # Create VideoWriter object to write the resized video
-        out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
-
-        while cap.isOpened():
-            # Read a frame from input video
-            ret, frame = cap.read()
-
-            if ret:
-                # Resize the frame
-                resized_frame = cv2.resize(frame, (width, height))
-                # Write the resized frame to output video
-                out.write(resized_frame)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
-            else:
-                break
-
-        # Release resources
-        cap.release()
-        out.release()
-        cv2.destroyAllWindows()
-
-    @staticmethod
-    def increase_videos_by_data_augmentation(folder_path='all_vids_regulated', save_videos=True):
-        actions = os.listdir(folder_path)
-        pbar = tqdm(total=len(actions), desc='Resizing videos')
-        for action in actions:
-            for video in os.listdir(os.path.join(folder_path, action)):
-                if not os.path.exists(os.path.join(folder_path, action)):
-                    os.makedirs(os.path.join(
-                        folder_path, action))
-                video_path = os.path.join(
-                    folder_path, action, video)
-
-                for multiplier in Dataset.resize_values:
-                    Dataset.resize_video(
-                        video_path, multiplier, save_videos)
-
-            pbar.update(1)
-
-        pbar = tqdm(total=len(os.listdir(folder_path)),
-                    desc='Rotating videos')
-        actions = os.listdir(folder_path)
-        for action in actions:
-            for video in os.listdir(os.path.join(folder_path, action)):
-                if not os.path.exists(os.path.join(folder_path, action)):
-                    os.makedirs(os.path.join(
-                        folder_path, action))
-                video_path = os.path.join(
-                    folder_path, action, video)
-                Dataset.rotate_video(video_path, 0, save_videos)
-                Dataset.rotate_video(video_path, 1, save_videos)
-                Dataset.rotate_video(video_path, 2, save_videos)
-            pbar.update(1)
 
     @staticmethod
     def detect_non_moving_frames(video_path,  threshold=0.08):
