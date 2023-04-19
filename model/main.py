@@ -4,7 +4,7 @@ import tensorflow as tf
 import json
 from tensorflow.keras.layers import Conv1D, Dropout, BatchNormalization, Flatten, Dense, AveragePooling1D, MaxPooling1D, LSTM, Lambda, Input, Bidirectional, GlobalAveragePooling1D, GlobalMaxPooling1D
 import pickle
-from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.optimizers import Adam, SGD, Adagrad
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.models import Sequential
 import matplotlib.pyplot as plt
@@ -125,34 +125,37 @@ def load_features(actions: list, label_map: dict, data_type: str = "train") -> t
 
 
 def create_model(actions):
-    base = 32
+    multi = 1
+    model = Sequential()
+    model.add(Conv1D(512*multi, kernel_size=2, activation='elu',
+              input_shape=(FRAMES_PER_VIDEO, 126)))
+    model.add(BatchNormalization())
+    model.add(AveragePooling1D(pool_size=2))
+    model.add(Dropout(0.5))
 
-    input_shape = (FRAMES_PER_VIDEO, 126)
-    # Define the input layer
-    input_layer = Input(shape=input_shape)
+    model.add(Conv1D(256*multi, kernel_size=2, activation='elu'))
+    model.add(BatchNormalization())
+    model.add(AveragePooling1D(pool_size=2))
+    model.add(Dropout(0.5))
 
-    # Add Bidirectional LSTM layer
-    lstm_layer = Bidirectional(LSTM(base, return_sequences=True))(input_layer)
-    lstm_layer = Dropout(0.5)(lstm_layer)
-    lstm_layer = Bidirectional(LSTM(2*base))(lstm_layer)
-    lstm_layer = Dropout(0.5)(lstm_layer)
+    model.add(Conv1D(128*multi, kernel_size=2, activation='elu'))
+    model.add(BatchNormalization())
+    model.add(AveragePooling1D(pool_size=2))
+    model.add(Dropout(0.5))
 
-    # Add Dense layers
-    dense_layer = Dense(4*base, activation='relu')(lstm_layer)
-    dense_layer = Dropout(0.5)(dense_layer)
-    dense_layer = Dense(2*base, activation='tanh')(dense_layer)
-    dense_layer = Dropout(0.5)(dense_layer)
+    model.add(Flatten())
 
-    # Define the output layer
-    output_layer = Dense(actions.shape[0], activation='softmax')(dense_layer)
+    model.add(Dense(512*multi, activation='relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(256*multi, activation='relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(actions.shape[0], activation='softmax'))
+    opt = Adam(learning_rate=0.001, amsgrad=True)
 
-    # Define the model
-    model = Model(inputs=input_layer, outputs=output_layer)
-    opt = Adam(learning_rate=0.001)
     model.compile(optimizer=opt, loss='categorical_crossentropy',
                   metrics=['categorical_accuracy', 'accuracy'])
 
-    # model.load_weights('./models.h5')
+    # model.load_weights('./models/action1.04-accuracy0.74.h5')
     return model
 
 
