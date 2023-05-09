@@ -20,61 +20,12 @@ from helper import split_data
 TRAIN_DATA_PATH = os.path.join('MP_Train')
 TEST_DATA_PATH = os.path.join('MP_Test')
 VAL_DATA_PATH = os.path.join('MP_Val')
+MAIN_DATA_PATH = os.path.join('MP_DATA_NEW')
 
 LABEL_MAP_PATH = os.path.join('label_map.json')
 
 MIN_VIDEOS = 10  # minimum number of videos for each action
-FRAMES_PER_VIDEO = 20  # number of frames per video (wont be changed)
-
-
-# def save_features(actions, actions_path):
-#     with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
-
-#         pbar = tqdm(total=len(actions),
-#                     desc="Processing actions", unit="action")
-#         for action in actions:
-
-#             # loop through every video in the folder of the name action
-#             videos_path = os.path.join(actions_path, action)
-#             videos = os.listdir(videos_path)
-
-#             for video in videos:
-#                 # get the number of frames in the video
-#                 cap = cv2.VideoCapture(os.path.join(videos_path, video))
-#                 length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-#                 # Loop through frames
-#                 for frame_num in range(length):
-#                     # Read feed
-#                     success, image = cap.read()
-#                     # Make detections
-#                     if image is None:
-#                         continue
-#                     image, results = mediapipe_detection(image, holistic)
-
-#                     # Draw landmarks
-#                     draw_styled_landmarks(image, results)
-#                     # Export keypoints
-#                     keypoints = extract_keypoints(results)
-#                     # Reshape keypoints
-
-#                     # Export to numpy array
-#                     npy_path = os.path.join(
-#                         DATA_PATH, action, str(start_folder), "{}.npy".format(frame_num))
-#                     # if the path doesn't exist, create it
-#                     if not os.path.exists(os.path.dirname(npy_path)):
-#                         os.makedirs(os.path.dirname(npy_path))
-
-#                     np.save(npy_path, keypoints)
-#                     # Show to screen
-#                     # cv2.imshow('OpenCV Feed', image)
-#                     # Break gracefully
-#                     if cv2.waitKey(10) & 0xFF == ord('q'):
-#                         break
-#                 cap.release()
-#                 cv2.destroyAllWindows()
-#                 start_folder += 1
-#             start_folder = 1
-#             pbar.update(1)
+FRAMES_PER_VIDEO = 30  # number of frames per video (wont be changed)
 
 
 def load_features(actions: list, label_map: dict, data_type: str = "train") -> tuple:
@@ -91,21 +42,21 @@ def load_features(actions: list, label_map: dict, data_type: str = "train") -> t
         data_path = TRAIN_DATA_PATH
         # check if the data is already saved as npy file
         if os.path.exists('x_' + data_type + '.npy') and os.path.exists('y_' + data_type + '.npy'):
-            x = np.load('x_' + data_type + '.npy')
-            y = np.load('y_' + data_type + '.npy')
+            x = np.load('x_' + data_type + '.npy', allow_pickle=True)
+            y = np.load('y_' + data_type + '.npy', allow_pickle=True)
             return x, y
 
     elif data_type == "test":
         data_path = TEST_DATA_PATH
         if os.path.exists('x_' + data_type + '.npy') and os.path.exists('y_' + data_type + '.npy'):
-            x = np.load('x_' + data_type + '.npy')
-            y = np.load('y_' + data_type + '.npy')
+            x = np.load('x_' + data_type + '.npy', allow_pickle=True)
+            y = np.load('y_' + data_type + '.npy', allow_pickle=True)
             return x, y
     elif data_type == "val":
         data_path = VAL_DATA_PATH
         if os.path.exists('x_' + data_type + '.npy') and os.path.exists('y_' + data_type + '.npy'):
-            x = np.load('x_' + data_type + '.npy')
-            y = np.load('y_' + data_type + '.npy')
+            x = np.load('x_' + data_type + '.npy', allow_pickle=True)
+            y = np.load('y_' + data_type + '.npy', allow_pickle=True)
             return x, y
 
     sequences, labels = [], []
@@ -124,33 +75,35 @@ def load_features(actions: list, label_map: dict, data_type: str = "train") -> t
     return sequences, labels
 
 
-def create_model(actions):
+def build_model(actions):
     multi = 1
+    tf.random.set_seed(42)
+
     model = Sequential()
     model.add(Conv1D(512*multi, kernel_size=2, activation='elu',
               input_shape=(FRAMES_PER_VIDEO, 126)))
     model.add(BatchNormalization())
     model.add(AveragePooling1D(pool_size=2))
-    model.add(Dropout(0.5))
+    model.add(Dropout(0.5, seed=42))
 
     model.add(Conv1D(256*multi, kernel_size=2, activation='elu'))
     model.add(BatchNormalization())
     model.add(AveragePooling1D(pool_size=2))
-    model.add(Dropout(0.5))
+    model.add(Dropout(0.5, seed=42))
 
     model.add(Conv1D(128*multi, kernel_size=2, activation='elu'))
     model.add(BatchNormalization())
     model.add(AveragePooling1D(pool_size=2))
-    model.add(Dropout(0.5))
+    model.add(Dropout(0.5, seed=42))
 
     model.add(Flatten())
 
-    model.add(Dense(512*multi, activation='relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(256*multi, activation='relu'))
-    model.add(Dropout(0.5))
+    model.add(Dense(512*multi, activation='elu'))
+    # model.add(Dropout(0.5, seed=42))
+    model.add(Dense(512*multi, activation='elu'))
+    model.add(Dropout(0.5, seed=42))
     model.add(Dense(actions.shape[0], activation='softmax'))
-    opt = Adam(learning_rate=0.001, amsgrad=True)
+    opt = Adam(learning_rate=0.0001)
 
     model.compile(optimizer=opt, loss='categorical_crossentropy',
                   metrics=['categorical_accuracy', 'accuracy'])
@@ -164,14 +117,15 @@ def train_model(model, X_train, y_train, X_val, y_val, batch_size=16):
     early_stopping = EarlyStopping(monitor='val_loss', patience=300)
     tensorboard = tf.keras.callbacks.TensorBoard(
         log_dir=os.path.join("logs", 'test'))
+
     checkpoint = tf.keras.callbacks.ModelCheckpoint(
-        './models/action{val_loss:.2f}-accuracy{val_accuracy:.2f}.h5', monitor='val_accuracy', verbose=1,
+        './models/best_model.h5', monitor='val_accuracy', verbose=1,
         save_best_only=True, mode='max', save_freq='epoch', save_weights_only=False
     )
 
     callbacks_list = [checkpoint, tensorboard, early_stopping]
-    history = model.fit(X_train, y_train, epochs=20, batch_size=batch_size,
-                        validation_data=(X_val, y_val), verbose=1, callbacks=callbacks_list, workers=4)
+    history = model.fit(X_train, y_train, epochs=100, batch_size=batch_size,
+                        validation_data=(X_val, y_val), verbose=1, callbacks=callbacks_list,  use_multiprocessing=True)
     return history
 
 
@@ -181,7 +135,6 @@ def show_test_results(model, X_test, y_test):
 
     # Show results
     y_pred = model.predict(X_test)
-    print(y_pred)
     y_pred = np.argmax(y_pred, axis=1)
     y_test = np.argmax(y_test, axis=1)
     test_accuracy = 100 * np.sum(y_pred == y_test)/y_test.shape[0]
@@ -208,12 +161,11 @@ def get_word(word):
     return word
 
 
-if __name__ == '__main__':
-
+def main():
     actions = []
     actions_count = {}
     limit = 0
-    actions = os.listdir(TRAIN_DATA_PATH)
+    actions = os.listdir(MAIN_DATA_PATH)
     actions = np.array(actions)
 
     # # load label map from json file
@@ -226,6 +178,8 @@ if __name__ == '__main__':
     print("we have {} actions".format(actions.shape[0]))
 
     label_map = {label: num for num, label in enumerate(actions)}
+
+    print("label map: ", label_map)
 
     # delete the old json file if exists
     if os.path.exists(LABEL_MAP_PATH):
@@ -242,29 +196,65 @@ if __name__ == '__main__':
     X_val, y_val = load_features(actions, label_map, data_type='val')
     print("loaded x_test, y_test, x_val, y_val, x_train, y_train")
 
+    # get the actions from the y_val
+
     batch_sizes = [
 
+        # 32,
+        # 16,
+        # 8,
+        # 4,
+        # 2,
+
         actions.shape[0],
+        # actions.shape[0]//2,
+        actions.shape[0]//4,
+        actions.shape[0]*4,
+        # actions.shape[0]*2,
 
     ]
 
     # sort the batch sizes
     batch_sizes.sort()
-    batch_sizes_accuracy = {}
+    batch_sizes_info = {}
+
+    max_accuracy = 0
+    average_accuracy = 0
+
     for batch_size in batch_sizes:
-        model = create_model(actions)
+        model = build_model(actions)
 
         history = train_model(model, X_train, y_train,
                               X_val, y_val, batch_size=batch_size)
         # save the history to a file using pickle
         with open('history.pkl', 'wb') as f:
             pickle.dump(history.history, f)
-        accuracy = show_test_results(model, X_test, y_test)
-        batch_sizes_accuracy[batch_size] = accuracy
-        print(batch_sizes_accuracy)
-        # model.save("./models.h5")
 
-    print(batch_sizes_accuracy)
-    print("top 5 batch sizes")
-    print(sorted(batch_sizes_accuracy.items(),
-                 key=lambda x: x[1], reverse=True)[:5])
+        model.load_weights("./models/best_model.h5")
+        # accuracy = show_test_results(model, X_test, y_test)
+        loss, categorical_accuracy, accuracy = model.evaluate(
+            X_test, y_test, verbose=1)
+
+        # 2 floating point precision
+        accuracy = round(accuracy, 2)
+        categorical_accuracy = round(categorical_accuracy, 2)
+        loss = round(loss, 2)
+        # save loss and accuracy to batch_sizes_info
+        batch_info = {
+            "loss": loss,
+            "categorical_accuracy": categorical_accuracy,
+            "accuracy": accuracy,
+            "batch_size": batch_size
+        }
+        batch_sizes_info[batch_size] = batch_info
+        if accuracy > max_accuracy:
+            max_accuracy = accuracy
+        average_accuracy += accuracy
+
+    average_accuracy /= len(batch_sizes)
+
+    return batch_sizes_info, max_accuracy, average_accuracy
+
+
+if __name__ == '__main__':
+    main()
