@@ -7,7 +7,7 @@ from sklearn.metrics import precision_recall_curve, average_precision_score, roc
 # import Model from keras
 from keras.models import Model
 import json
-from main import load_features, create_model, LABEL_MAP_PATH
+from main import load_features, build_model, LABEL_MAP_PATH
 
 
 def plot_confusion_matrix(model, X_test, y_test, label_map, indices=None):
@@ -102,7 +102,7 @@ def main():
     from visualkeras import layered_view
 
     # Create the model
-    model = create_model(actions)
+    model = build_model(actions)
 
     # history = model.fit(X_test, y_test, epochs=300, batch_size=100,
     #                     validation_split=0.5, verbose=1)

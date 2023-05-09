@@ -8,9 +8,12 @@ import uuid
 import istarmap
 import multiprocessing
 from tqdm import tqdm
+import gc
 
 
 class DataAugmentation:
+
+    ''' This class is used to augment the data by applying random translations, center cropping, and random resizing to the videos '''
 
     def __init__(self, videos_path, output_path):
         self.videos_paths = videos_path
@@ -57,7 +60,7 @@ class DataAugmentation:
         cropped_video = self.convert_to_cv2(cropped_frames)
         return cropped_video
 
-    def random_resize(self, video, scale_range=(0.5, 1.5), aspect_ratio_range=(0.3, 1.7)):
+    def random_resize(self, video, scale_range=(0.2, 1.2), aspect_ratio_range=(0.1, 0.9)):
         # Get video properties
         height, width, layers = video[0].shape
         num_frames = len(video)
@@ -136,19 +139,16 @@ class DataAugmentation:
             self.random_translation,
             self.piecewise_affine,
             self.random_resize,
-            self.random_resize,
-
+            self.random_sheer,
+            self.center_crop,
+            self.rotate_video_frames,
         ]
         augmented_videos = [video]
         for augmentation_technique in onetime_augmentation_techniques:
             augmented_videos.append(augmentation_technique(video))
 
         second_time_augmentation_techniques = [
-            self.random_sheer,
-            self.random_sheer,
-            self.center_crop,
-            self.rotate_video_frames,
-            self.rotate_video_frames,
+
         ]
         all_augmented_videos = []
 
@@ -170,7 +170,7 @@ class DataAugmentation:
         # check if the output folder exists
         output_folder = os.path.dirname(out_path)
         if not os.path.exists(output_folder):
-            os.makedirs(output_folder)
+            os.makedirs(output_folder, exist_ok=True)
         # Create a VideoWriter object
         out = cv2.VideoWriter(out_path, cv2.VideoWriter_fourcc(
             *'mp4v'), 30, (width, height))
@@ -181,29 +181,40 @@ class DataAugmentation:
         out.release()
 
     def augment_video(self, video_file, output_folder_name, get_augmented_videos, save_video, convert_to_list):
-        # Augment a single video.
-        video = cv2.VideoCapture(video_file)
-        # convert it to a list of frames
-        video = convert_to_list(video)
-        augmented_videos = get_augmented_videos(video)
-
         # out_path will be same as video_file but with changing the first folder name
         out_path = video_file.split(os.sep)
         out_path[0] = output_folder_name
         # remove the file name
         out_path = out_path[:-1]
         out_path = '/'.join(out_path)
+
+        # if os.path.exists(out_path):
+        #     # check if the folder has less than 10 videos
+        #     if len(os.listdir(out_path)) < 10:
+        #         return
+
+        # Augment a single video.
+        video = cv2.VideoCapture(video_file)
+        # convert it to a list of frames
+        video = convert_to_list(video)
+        augmented_videos = get_augmented_videos(video)
+        print(output_folder_name, len(augmented_videos))
+
         for i in range(len(augmented_videos)):
             video_name = video_file.split(os.sep)[-1]
-            # add uuid to the video name
-            video_name = str(uuid.uuid4()) + video_name
+            # add uuid to the end of the video name before the .mp4
+            video_name = video_name.split(
+                '.')[0] + '#' + str(uuid.uuid4()) + '.mp4'
+
             save_video(augmented_videos[i], out_path + os.sep + video_name)
+
+        del augmented_videos
 
     def augment_videos(self):
         # Augment all of the videos in the specified path.
         inputs = [(video_file, self.output_folder_name, self.get_augmented_videos,
                    self.save_video, self.convert_to_list) for video_file in self.videos_paths]
         with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
-            with tqdm(total=len(self.videos_paths), desc='Adjusting videos total frames') as pbar:
+            with tqdm(total=len(self.videos_paths), desc='Increasing dataset size') as pbar:
                 for _ in p.istarmap(self.augment_video, inputs):
                     pbar.update()

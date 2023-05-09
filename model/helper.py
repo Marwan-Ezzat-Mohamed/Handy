@@ -1,12 +1,8 @@
 import os
 import shutil
+import random
 from tqdm import tqdm
-import numpy as np
 from mediapipeHelper import *
-import random
-
-
-import random
 
 
 def split_arr(dataset: set,
@@ -33,7 +29,10 @@ def split_arr(dataset: set,
     test_size = data_size - train_size - val_size
 
     # Randomly shuffle the dataset
-    shuffled_data = random.sample(dataset, data_size)
+    random.seed(42)
+    # random sample with seed 42
+    sorted_data = sorted(dataset)
+    shuffled_data = random.sample(sorted_data, len(sorted_data))
 
     # check if the val and test sets are empty
     if val_size == 0:
@@ -45,8 +44,8 @@ def split_arr(dataset: set,
 
     # Split the shuffled dataset into train, validation, and test sets
     train_set = set(shuffled_data[:train_size])
-    val_set = set(shuffled_data[train_size:train_size+val_size])
-    test_set = set(shuffled_data[train_size+val_size:])
+    val_set = set(shuffled_data[train_size: train_size + val_size])
+    test_set = set(shuffled_data[train_size + val_size:])
 
     return train_set, val_set, test_set
 
@@ -72,8 +71,8 @@ def split_data(limit=50,
             continue
         limit -= 1
 
-        val_percent = 0.1
-        train_percent = 0.80
+        val_percent = 0.10
+        train_percent = 0.65
 
         # remove the  _rotated_ and  _resized_x.xx  from the video file names
         # insert the new video file names in a set
@@ -82,6 +81,8 @@ def split_data(limit=50,
             filename = video_folder.split('_moving')[0]
             filenames.add(filename)
 
+        # sort
+        filenames = set(sorted(filenames))
         # split the set into two sets
         train_filenames, val_filenames, test_filenames = split_arr(
             filenames, train_percent, val_percent)

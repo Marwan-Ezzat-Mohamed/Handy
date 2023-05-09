@@ -1,6 +1,8 @@
 /models
 /unique_videos
 /ASL_Videos
+/all_vids
+/all_vids_regulated_30
 /logs
 /__pycache__
 /MP_Data
@@ -11,4 +13,6 @@
 
 *.npy
 *.h5
+*.mp4
+*.mov
 *.zip
