@@ -4,6 +4,8 @@ import random
 from tqdm import tqdm
 from mediapipeHelper import *
 
+VIDEO_NAME_SEPARATOR = '$separator$'
+
 
 def split_arr(dataset: set,
               train_ratio: float,
@@ -78,7 +80,7 @@ def split_data(limit=50,
         # insert the new video file names in a set
         filenames = set()
         for video_folder in os.listdir(action_path):
-            filename = video_folder.split('_moving')[0]
+            filename = video_folder.split(VIDEO_NAME_SEPARATOR)[0]
             filenames.add(filename)
 
         # sort
@@ -101,7 +103,7 @@ def split_data(limit=50,
             os.makedirs(train_folder)
 
         for video_folder in os.listdir(action_path):
-            filename = video_folder.split('_moving')[0]
+            filename = video_folder.split(VIDEO_NAME_SEPARATOR)[0]
             if filename in test_filenames:
                 shutil.copy(os.path.join(action_path, video_folder),
                             os.path.join(test_folder, video_folder))

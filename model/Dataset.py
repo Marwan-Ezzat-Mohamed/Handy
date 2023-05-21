@@ -11,9 +11,10 @@ import cv2
 import time
 import json
 import istarmap
-from main import main
+import concurrent.futures
+from main import main, FRAMES_PER_VIDEO
 import pandas as pd
-from helper import split_data
+from helper import split_data, VIDEO_NAME_SEPARATOR
 
 
 class Dataset:
@@ -21,9 +22,10 @@ class Dataset:
     # static variables
     resize_values = [0.5, 1.5]
     features_output_folder_name: str = 'MP_DATA_NEW'
-    num_cpu_for_multiprocessing = multiprocessing.cpu_count()-2
+    num_cpu_for_multiprocessing = multiprocessing.cpu_count()
     rotate_times = 0,
     aspect_ratio_times = 0,
+    non_moving_frames_threshold = 0
 
     def __init__(
             self,
@@ -33,7 +35,8 @@ class Dataset:
             resize_values=[0.5, 1.5],
             rotate_times=0,
             aspect_ratio_times=0,
-            save_new_videos=True,
+            non_moving_frames_threshold=0,
+            save_features_only=True,
     ):
         if features_output_folder_name is not None:
             Dataset.features_output_folder_name = "MP_DATA_NEW"
@@ -42,22 +45,36 @@ class Dataset:
 
         Dataset.rotate_times = rotate_times
         Dataset.aspect_ratio_times = aspect_ratio_times
-
+        Dataset.non_moving_frames_threshold = non_moving_frames_threshold
         self.dataset_folder_path = dataset_folder_path
         self.num_frames_per_video = num_frames_per_video
         self.all_videos_folder_name = 'all_vids'
         self.all_vids_augmented_folder_name = 'all_vids_augmented'
 
-        self.save_new_videos = save_new_videos
+        self.save_features_only = save_features_only
 
     def process(self):
         # self._put_all_videos_in_one_folder()
         self._remove_corrupted_videos()
-        # self._remove_none_moving_frames_from_videos()
+        if self.non_moving_frames_threshold > 0:
+            self._remove_none_moving_frames_from_videos()
         self._adjust_videos_total_frames()
+        self._rename_videos()
         self._increase_videos_by_data_augmentation()
         self._save_videos_per_actions_json()
-        self._save_videos_features()
+        if not self.save_features_only:
+            self._save_videos_features()
+
+    def _rename_videos(self) -> None:
+        vids: List[str] = Dataset.get_all_vids_paths(
+            self.all_videos_folder_name)
+        Dataset.rename_videos(vids)
+
+    @staticmethod
+    def rename_videos(vids):
+        for vid in vids:
+            # rename from all_vids/action/video.mp4 to all_vids/action/video$separator$.mp4
+            os.rename(vid, vid.replace('.mp4', VIDEO_NAME_SEPARATOR + '.mp4'))
 
     def _put_all_videos_in_one_folder(self) -> None:
         if not os.path.exists(self.all_videos_folder_name):
@@ -97,7 +114,7 @@ class Dataset:
 
     def _increase_videos_by_data_augmentation(self) -> None:
         Dataset.increase_videos_by_data_augmentation(
-            self.all_videos_folder_name, self.all_vids_augmented_folder_name, self.save_new_videos)
+            self.all_videos_folder_name, self.all_vids_augmented_folder_name, self.save_features_only)
 
     def _save_videos_per_actions_json(self) -> None:
         Dataset.save_videos_per_actions_json(
@@ -383,17 +400,21 @@ class Dataset:
         frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
         aspect_ratios = [4.0/3.0, 16.0/9.0, 16.0/10.0, 21.0/9.0,
-                         1/1, 3/4, 9/16, 10/16, 9/21]
+                         1.0, 3.0/4.0, 9.0/16.0, 10.0/16.0, 9.0/21.0]
 
         # choose a different aspect ratio and make sure it is not the same as the original aspect ratio
         # new_aspect_ratio = aspect_ratios[0] if round(aspect_ratios[0], 2) != round(
         #     frame_width / frame_height, 2) else aspect_ratios[1]
 
-        new_aspect_ratio = aspect_ratios[(vid_num-1)]
-        for aspect_ratio in aspect_ratios:
+        for index, aspect_ratio in enumerate(aspect_ratios):
+            if index < vid_num-1:
+                continue
+
             if round(aspect_ratio, 2) != round(frame_width / frame_height, 2):
                 # check if the video has the same aspect ratio saved already in the output_folder
                 if os.path.exists(output_folder + os.sep + input_path.split(os.sep)[-1][:-4] + '_aspect_ratio_changed_' + str(round(aspect_ratio, 2)) + '.mp4'):
+                    print(
+                        f"video {input_path} already has aspect ratio {aspect_ratio} saved")
                     return
 
                 new_aspect_ratio = aspect_ratio
@@ -486,48 +507,47 @@ class Dataset:
         cv2.destroyAllWindows()
 
     @staticmethod
-    def increase_videos_by_data_augmentation(folder_path='all_vids', output_folder="all_vids_augmented", save_videos=True):
+    def increase_videos_by_data_augmentation(folder_path='all_vids', output_folder="all_vids_augmented", save_features_only=False):
+        all_pbar = tqdm(total=len(os.listdir(folder_path)),
+                        desc='Increasing videos by data augmentation')
 
-        vids = Dataset.get_all_vids_paths(folder_path)
-        for vid in vids:
-            # vid all_vids/action/vid_name.mp4
-            # copy to all_vids_augmented/action/vid_name.mp4
-            output_path = vid.replace(folder_path, output_folder)
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            shutil.copyfile(vid, output_path)
+        for action in os.listdir(folder_path):
+            vids = Dataset.get_all_vids_paths(folder_path + os.sep + action)
 
-        vids = Dataset.get_all_vids_paths(output_folder)
-        inputs = []
-        for vid in vids:
-            for i in range(Dataset.aspect_ratio_times):
-                inputs.append((vid, i+1, output_folder))
-
-        with multiprocessing.Pool(processes=Dataset.num_cpu_for_multiprocessing) as p:
-            with tqdm(total=len(inputs), desc='changing videos aspect ratio') as pbar:
-                for _ in p.istarmap(Dataset.change_video_aspect_ratio, inputs):
-                    pbar.update()
-
-        vids = Dataset.get_all_vids_paths(output_folder)
-        inputs = []
-        for resize_value in Dataset.resize_values:
             for vid in vids:
-                inputs.append((vid, resize_value, output_folder))
+                output_path = vid.replace(folder_path, output_folder)
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                shutil.copyfile(vid, output_path)
 
-        with multiprocessing.Pool(processes=Dataset.num_cpu_for_multiprocessing) as p:
-            with tqdm(total=len(inputs), desc='resizing videos') as pbar:
-                for _ in p.istarmap(Dataset.resize_video, inputs):
-                    pbar.update()
+            inputs = [(vid, i + 1, output_folder)
+                      for vid in vids for i in range(Dataset.aspect_ratio_times)]
+            with multiprocessing.Pool(processes=Dataset.num_cpu_for_multiprocessing) as p:
+                with tqdm(total=len(inputs), desc='Changing videos aspect ratio') as pbar:
+                    for _ in p.istarmap(Dataset.change_video_aspect_ratio, inputs):
+                        pbar.update()
 
-        vids = Dataset.get_all_vids_paths(output_folder)
-        inputs = []
-        for vid in vids:
-            for i in range(Dataset.rotate_times):
-                inputs.append((vid, i, output_folder))
+            vids = Dataset.get_all_vids_paths(output_folder + os.sep + action)
+            inputs = [(vid, resize_value, output_folder)
+                      for resize_value in Dataset.resize_values for vid in vids]
+            with multiprocessing.Pool(processes=Dataset.num_cpu_for_multiprocessing) as p:
+                with tqdm(total=len(inputs), desc='Resizing videos') as pbar:
+                    for _ in p.istarmap(Dataset.resize_video, inputs):
+                        pbar.update()
 
-        with multiprocessing.Pool(processes=Dataset.num_cpu_for_multiprocessing) as p:
-            with tqdm(total=len(inputs), desc='rotating videos') as pbar:
-                for _ in p.istarmap(Dataset.rotate_video, inputs):
-                    pbar.update()
+            vids = Dataset.get_all_vids_paths(output_folder + os.sep + action)
+            inputs = [(vid, i, output_folder)
+                      for vid in vids for i in range(Dataset.rotate_times)]
+            with multiprocessing.Pool(processes=Dataset.num_cpu_for_multiprocessing) as p:
+                with tqdm(total=len(inputs), desc='Rotating videos') as pbar:
+                    for _ in p.istarmap(Dataset.rotate_video, inputs):
+                        pbar.update()
+
+            if save_features_only:
+                Dataset.save_videos_features(
+                    Dataset.get_all_vids_paths(output_folder))
+                shutil.rmtree(output_folder)
+
+            all_pbar.update()
 
     @staticmethod
     def detect_non_moving_frames(video_path,  threshold=0.8):
@@ -561,36 +581,35 @@ class Dataset:
         out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
         # Convert the frame to grayscale
         prev_gray = cv2.cvtColor(prev_frame, cv2.COLOR_BGR2GRAY)
-        with mp_holistic.Holistic(min_detection_confidence=0.5,
-                                  min_tracking_confidence=0.5) as holistic:
-            while True:
-                # Read the current frame
-                ret, frame = read_retry(cap)
-                if not ret:
-                    break
 
-                # Convert the frame to grayscale
-                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        while True:
+            # Read the current frame
+            ret, frame = read_retry(cap)
+            if not ret:
+                break
 
-                # image, results = mediapipe_detection(frame, holistic)
+            # Convert the frame to grayscale
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-                # if not results.left_hand_landmarks:
-                #     continue
-                # if not results.right_hand_landmarks:
-                #     continue
+            # image, results = mediapipe_detection(frame, holistic)
 
-                # Calculate the difference between the current and previous frames
-                diff = cv2.absdiff(gray, prev_gray)
+            # if not results.left_hand_landmarks:
+            #     continue
+            # if not results.right_hand_landmarks:
+            #     continue
 
-                # Check if the difference falls below the threshold
-                if cv2.mean(diff)[0] < threshold:
-                    continue
+            # Calculate the difference between the current and previous frames
+            diff = cv2.absdiff(gray, prev_gray)
 
-                # Write the frame to the output video
-                out.write(frame)
+            # Check if the difference falls below the threshold
+            if cv2.mean(diff)[0] < threshold:
+                continue
 
-                # Update the previous frame
-                prev_gray = gray
+            # Write the frame to the output video
+            out.write(frame)
+
+            # Update the previous frame
+            prev_gray = gray
 
         # Release the video capture and writer objects
         cap.release()
@@ -598,6 +617,8 @@ class Dataset:
 
         # Delete the old video
         os.remove(video_path)
+        # Rename the new video and remove the suffix
+        os.rename(output_path, video_path)
 
     @staticmethod
     def remove_none_moving_frames_from_video(video_path, min_detection_confidence=0.5, min_tracking_confidence=0.5):
@@ -650,9 +671,13 @@ class Dataset:
 
     @staticmethod
     def remove_none_moving_frames_from_videos(videos_paths):
+        inputs = []
+        for video_path in videos_paths:
+            inputs.append((video_path, Dataset.non_moving_frames_threshold))
+
         with multiprocessing.Pool(processes=Dataset.num_cpu_for_multiprocessing) as p:
-            with tqdm(total=len(videos_paths), desc='Removing none moving frames from videos') as pbar:
-                for _ in p.imap_unordered(Dataset.detect_non_moving_frames, videos_paths):
+            with tqdm(total=len(inputs), desc='removing non moving frames') as pbar:
+                for _ in p.istarmap(Dataset.detect_non_moving_frames, inputs):
                     pbar.update()
 
     @staticmethod
@@ -715,7 +740,7 @@ def reset_state():
 def append_results_to_excel(results, excel_path='results.xlsx'):
     if not os.path.exists(excel_path):
         df = pd.DataFrame(columns=['resize_values', 'rotate_times', 'aspect_ratio_times',
-                                   'accuracy', 'max_accuracy', 'average_accuracy'])
+                                   'accuracy', 'max_accuracy', 'average_accuracy', 'non_moving_frames_threshold', 'num_of_frames'])
         df.to_excel(excel_path, index=False)
 
     df = pd.read_excel(excel_path)
@@ -724,29 +749,66 @@ def append_results_to_excel(results, excel_path='results.xlsx'):
 
 
 if __name__ == '__main__':
-    possible_resize_values = [[]
-                              ]
+    possible_resize_values = [
+        # [1.5, 0.5, 1.8, 1.2],
+        # [1.5, 0.5, 1.8],
+        # [1.5, 0.5],
+        [1.5],
+
+    ]
 
     possible_rotate_times = [1]
     possible_aspect_ratio_times = [1]
+    possible_non_moving_frames_threshold = [0.08]
+    possible_num_of_frames = [30]
+
+    # reset_state()
+    # d = Dataset(resize_values=[1.5],
+    #             rotate_times=1,
+    #             aspect_ratio_times=2,
+    #             non_moving_frames_threshold=0.1
+    #             )
+    # d.process()
+
+    # wait for cpu cores to finish
+
+    # split_data()
+    # results = {}
+    # accuracy_data, max_accuracy, average_accuracy = main()
+    # results['accuracy'] = accuracy_data
+    # results['max_accuracy'] = max_accuracy
+    # results['average_accuracy'] = average_accuracy
+    # results['resize_values'] = [1.5]
+    # results['rotate_times'] = 1
+    # results['aspect_ratio_times'] = 2
+    # results['non_moving_frames_threshold'] = 0.1
+    # append_results_to_excel(results)
 
     for resize_values in possible_resize_values:
         for rotate_times in possible_rotate_times:
             for aspect_ratio_times in possible_aspect_ratio_times:
-                reset_state()
-                d = Dataset(resize_values=resize_values,
-                            rotate_times=rotate_times,
-                            aspect_ratio_times=aspect_ratio_times)
-                d.process()
-                # wait for cpu cores to finish
+                for non_moving_frames_threshold in possible_non_moving_frames_threshold:
+                    for num_of_frames in possible_num_of_frames:
+                        reset_state()
+                        d = Dataset(resize_values=resize_values,
+                                    rotate_times=rotate_times,
+                                    aspect_ratio_times=aspect_ratio_times,
+                                    non_moving_frames_threshold=non_moving_frames_threshold,
+                                    save_features_only=False,
+                                    )
+                        d.process()
+                        # wait for cpu cores to finish
 
-                split_data()
-                results = {}
-                accuracy_data, max_accuracy, average_accuracy = main()
-                results['accuracy'] = accuracy_data
-                results['max_accuracy'] = max_accuracy
-                results['average_accuracy'] = average_accuracy
-                results['resize_values'] = resize_values
-                results['rotate_times'] = rotate_times
-                results['aspect_ratio_times'] = aspect_ratio_times
-                append_results_to_excel(results)
+                        split_data()
+                        FRAMES_PER_VIDEO = num_of_frames
+                        results = {}
+                        accuracy_data, max_accuracy, average_accuracy = main()
+                        results['accuracy'] = accuracy_data
+                        results['max_accuracy'] = max_accuracy
+                        results['average_accuracy'] = average_accuracy
+                        results['resize_values'] = resize_values
+                        results['rotate_times'] = rotate_times
+                        results['aspect_ratio_times'] = aspect_ratio_times
+                        results['non_moving_frames_threshold'] = non_moving_frames_threshold
+                        results['num_of_frames'] = num_of_frames
+                        append_results_to_excel(results)
