@@ -54,7 +54,6 @@ class Dataset:
         self.save_features_only = save_features_only
 
     def process(self):
-        # self._put_all_videos_in_one_folder()
         self._remove_corrupted_videos()
         if self.non_moving_frames_threshold > 0:
             self._remove_none_moving_frames_from_videos()
@@ -178,6 +177,7 @@ class Dataset:
                 # Make detections
                 if image is None:
                     continue
+
                 image, results = mediapipe_detection(image, holistic)
                 # Export keypoints
                 keypoints = extract_keypoints(results)
@@ -753,12 +753,13 @@ if __name__ == '__main__':
         # [1.5, 0.5, 1.8, 1.2],
         # [1.5, 0.5, 1.8],
         # [1.5, 0.5],
-        [1.5],
+        # [1.5],
+        [],
 
     ]
-
     possible_rotate_times = [1]
     possible_aspect_ratio_times = [1]
+
     possible_non_moving_frames_threshold = [0.08]
     possible_num_of_frames = [30]
 
@@ -789,6 +790,7 @@ if __name__ == '__main__':
             for aspect_ratio_times in possible_aspect_ratio_times:
                 for non_moving_frames_threshold in possible_non_moving_frames_threshold:
                     for num_of_frames in possible_num_of_frames:
+
                         reset_state()
                         d = Dataset(resize_values=resize_values,
                                     rotate_times=rotate_times,

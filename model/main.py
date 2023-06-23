@@ -12,7 +12,6 @@ from keras.callbacks import EarlyStopping
 
 import shutil
 from keras import regularizers, Model
-from SignLanguageModel import SignLanguageModel
 
 
 # mkan el folder elly 3mlna fe save ll features
@@ -34,7 +33,8 @@ def load_features(actions, label_map: dict, data_type: str = "train") -> tuple:
     """
     allowed_data_types = ['train', 'test', 'val']
     if data_type not in allowed_data_types:
-        raise ValueError(f"Invalid value for 'param', allowed values are: {allowed_data_types}")
+        raise ValueError(
+            f"Invalid value for 'param', allowed values are: {allowed_data_types}")
     data_path = TRAIN_DATA_PATH
     if data_type == "train":
         data_path = TRAIN_DATA_PATH
@@ -57,6 +57,74 @@ def load_features(actions, label_map: dict, data_type: str = "train") -> tuple:
     np.save(f'y_{data_type}.npy', labels)
     return sequences, labels
 
+
+def build_model(actions):
+    multi = 1
+    tf.random.set_seed(42)
+
+    model = Sequential()
+    model.add(Conv1D(512*multi, kernel_size=2, activation='elu',
+              input_shape=(FRAMES_PER_VIDEO, 126)))
+    model.add(BatchNormalization())
+    model.add(AveragePooling1D(pool_size=2))
+    model.add(Dropout(0.5, seed=42))
+
+    model.add(Conv1D(256*multi, kernel_size=2, activation='elu'))
+    model.add(BatchNormalization())
+    model.add(AveragePooling1D(pool_size=2))
+    model.add(Dropout(0.5, seed=42))
+
+    model.add(Conv1D(128*multi, kernel_size=2, activation='elu'))
+    model.add(BatchNormalization())
+    model.add(AveragePooling1D(pool_size=2))
+    model.add(Dropout(0.5, seed=42))
+
+    model.add(Flatten())
+
+    model.add(Dense(512*multi, activation='elu'))
+    # model.add(Dropout(0.5, seed=42))
+    model.add(Dense(512*multi, activation='elu'))
+    model.add(Dropout(0.5, seed=42))
+    model.add(Dense(actions.shape[0], activation='softmax'))
+    opt = Adam(learning_rate=0.0001)
+
+    model.compile(optimizer=opt, loss='categorical_crossentropy',
+                  metrics=['categorical_accuracy', 'accuracy'])
+
+    # model.load_weights('./models/action1.04-accuracy0.74.h5')
+    return model
+
+
+def train_model(model, X_train, y_train, X_val, y_val, batch_size=16):
+
+    early_stopping = EarlyStopping(monitor='val_loss', patience=300)
+    tensorboard = tf.keras.callbacks.TensorBoard(
+        log_dir=os.path.join("logs", 'test'))
+
+    checkpoint = tf.keras.callbacks.ModelCheckpoint(
+        './models/best_model.h5', monitor='val_accuracy', verbose=1,
+        save_best_only=True, mode='max', save_freq='epoch', save_weights_only=False
+    )
+
+    callbacks_list = [checkpoint, tensorboard, early_stopping]
+    history = model.fit(X_train, y_train, epochs=1000, batch_size=batch_size,
+                        validation_data=(X_val, y_val), verbose=1, callbacks=callbacks_list,  use_multiprocessing=True)
+    return history
+
+
+def show_test_results(model, X_test, y_test):
+    if model is None or X_test is None or y_test is None:
+        raise Exception("model, X_test and y_test must be given")
+
+    # Show results
+    y_pred = model.predict(X_test)
+    y_pred = np.argmax(y_pred, axis=1)
+    y_test = np.argmax(y_test, axis=1)
+    test_accuracy = 100 * np.sum(y_pred == y_test)/y_test.shape[0]
+    print("Test Accuracy: {:.2f}%".format(
+        test_accuracy))
+
+    return test_accuracy
 
 
 def get_word(word):
@@ -137,16 +205,21 @@ def main():
     average_accuracy = 0
 
     for batch_size in batch_sizes:
-        signLanguageModel = SignLanguageModel(actions=actions, frames_per_video=FRAMES_PER_VIDEO)
-        model = signLanguageModel.model
-        history = signLanguageModel.train( X_train, y_train,
-                              X_val, y_val, batch_size=batch_size, epochs=10)
+        model = build_model(actions)
+
+        history = train_model(model, X_train, y_train,
+                              X_val, y_val, batch_size=batch_size)
         # save the history to a file using pickle
         with open('history.pkl', 'wb') as f:
             pickle.dump(history.history, f)
 
         model.load_weights("./models/best_model.h5")
         # accuracy = show_test_results(model, X_test, y_test)
+        del X_train
+        del y_train
+        del X_val
+        del y_val
+        X_test, y_test = load_features(actions, label_map, data_type='test')
         loss, categorical_accuracy, accuracy = model.evaluate(
             X_test, y_test, verbose=1)
 
