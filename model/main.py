@@ -107,7 +107,7 @@ def train_model(model, X_train, y_train, X_val, y_val, batch_size=16):
     )
 
     callbacks_list = [checkpoint, tensorboard, early_stopping]
-    history = model.fit(X_train, y_train, epochs=1000, batch_size=batch_size,
+    history = model.fit(X_train, y_train, epochs=100, batch_size=batch_size,
                         validation_data=(X_val, y_val), verbose=1, callbacks=callbacks_list,  use_multiprocessing=True)
     return history
 
