@@ -215,10 +215,6 @@ def main():
 
         model.load_weights("./models/best_model.h5")
         # accuracy = show_test_results(model, X_test, y_test)
-        del X_train
-        del y_train
-        del X_val
-        del y_val
         X_test, y_test = load_features(actions, label_map, data_type='test')
         loss, categorical_accuracy, accuracy = model.evaluate(
             X_test, y_test, verbose=1)
