@@ -8,6 +8,7 @@ from sklearn.metrics import precision_recall_curve, average_precision_score, roc
 from keras.models import Model
 import json
 from main import load_features, build_model, LABEL_MAP_PATH
+import pickle
 
 
 def plot_confusion_matrix(model, X_test, y_test, label_map, indices=None):
@@ -69,16 +70,16 @@ def plot_action_accuracy(model, X_test, y_test, actions):
 
 def plot_loss_accuracy(history):
     # Plot the loss and accuracy of the model
-    plt.plot(history.history['loss'], label='train')
-    plt.plot(history.history['val_loss'], label='test')
+    plt.plot(history['loss'], label='train')
+    plt.plot(history['val_loss'], label='validation')
     plt.title('Model Loss')
     plt.ylabel('Loss')
     plt.xlabel('Epoch')
     plt.legend()
     plt.show()
 
-    plt.plot(history.history['accuracy'], label='train')
-    plt.plot(history.history['val_accuracy'], label='test')
+    plt.plot(history['accuracy'], label='train')
+    plt.plot(history['val_accuracy'], label='validation')
     plt.title('Model Accuracy')
     plt.ylabel('Accuracy')
     plt.xlabel('Epoch')
@@ -88,6 +89,7 @@ def plot_loss_accuracy(history):
 
 def main():
     # Load the data
+    batch_sizes = [20, 25, 100]
     label_map = {}
     with open(LABEL_MAP_PATH) as fp:
         label_map = json.load(fp)
@@ -95,48 +97,20 @@ def main():
 
     print("actions: ", actions)
 
-    # X_train, y_train = load_features(actions, label_map, data_type='train')
+    X_train, y_train = load_features(actions, label_map, data_type='train')
     X_test, y_test = load_features(actions, label_map, data_type='test')
 
-    # view model arch using visualkeras
-    from visualkeras import layered_view
+    for batch in batch_sizes:
+        print('batch size: ', batch)
+        model = build_model(actions)
+        model.load_weights(f"./models/best_model{batch}.h5")
+        with open(f'history{batch}.pkl', 'rb') as file:
+            history = pickle.load(file)
 
-    # Create the model
-    model = build_model(actions)
+        plot_confusion_matrix(model, X_test, y_test, label_map)
 
-    # history = model.fit(X_test, y_test, epochs=300, batch_size=100,
-    #                     validation_split=0.5, verbose=1)
-    # print(history.history.keys())
-    # plt.plot(history.history['loss'])
-    # plt.plot(history.history['val_loss'])
-    # plt.title('model loss')
-    # plt.ylabel('loss')
-    # plt.xlabel('epoch')
-    # plt.legend(['train', 'val'], loc='upper left')
-    # plt.show()
-
-    # layered_view(model, legend=True, to_file='model.png')
-
-    # plot_action_accuracy(model, X_test, y_test, actions)
-
-    # y_pred = np.argmax(model.predict(X_test), axis=-1)
-    # # get the accuracy of each action in the test set
-    # accuracy_map = {}
-    # for i, action in enumerate(actions):
-    #     action_indices = np.where(y_test == i)[0]
-    #     accuracy_map[action] = accuracy_score(
-
-    # # print top 50 actions with highest accuracy
-    # sorted_accuracy_map = sorted(
-    #     accuracy_map.items(), key=lambda x: x[1], reverse=True)
-    # print(sorted_accuracy_map[:50])
-    # # Train the model
-    # history = model.fit(X_train, y_train, validation_data=(
-    #     X_test, y_test), epochs=10, batch_size=32)
-
-    # Plot the confusion matrix
-    plot_confusion_matrix(model, X_test, y_test,
-                          label_map, indices=range(200))
+        plot_loss_accuracy(history)
+        plot_action_accuracy(model, X_test, y_test, actions)
 
 
 if __name__ == '__main__':

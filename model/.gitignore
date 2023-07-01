@@ -9,7 +9,7 @@
 /MP_Train
 /MP_Val
 /MP_Test
-
+/original_vids
 
 *.npy
 *.h5

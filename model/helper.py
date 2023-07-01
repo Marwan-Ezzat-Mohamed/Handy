@@ -52,9 +52,9 @@ def split_arr(dataset: set,
     return train_set, val_set, test_set
 
 
-def split_data(limit=50,
+def split_data(limit=500,
                min_videos_per_action=5):
-    MAIN_DATA_FOLDER = 'MP_DATA_NEW'
+    MAIN_DATA_FOLDER = 'all_vids'
     # count the number of videos that are greater than min_videos_per_action
     number_of_videos = [f for f in os.listdir(
         MAIN_DATA_FOLDER) if len(os.listdir(os.path.join(MAIN_DATA_FOLDER, f))) >= min_videos_per_action]
@@ -80,8 +80,8 @@ def split_data(limit=50,
         # insert the new video file names in a set
         filenames = set()
         for video_folder in os.listdir(action_path):
-            filename = video_folder.split(VIDEO_NAME_SEPARATOR)[0]
-            filenames.add(filename)
+            # filename = video_folder.split(VIDEO_NAME_SEPARATOR)[0] # no need since splitting is done before augmentation
+            filenames.add(video_folder)
 
         # sort
         filenames = set(sorted(filenames))
@@ -90,20 +90,21 @@ def split_data(limit=50,
             filenames, train_percent, val_percent)
 
         # create the test folder
-        test_folder = os.path.join('MP_Test', word_folder)
+        test_folder = os.path.join('Test', word_folder)
         if not os.path.exists(test_folder):
             os.makedirs(test_folder)
         # create the val folder
-        val_folder = os.path.join('MP_Val', word_folder)
+        val_folder = os.path.join('Val', word_folder)
         if not os.path.exists(val_folder):
             os.makedirs(val_folder)
         # create the train folder
-        train_folder = os.path.join('MP_Train', word_folder)
+        train_folder = os.path.join('Train_unaugmented', word_folder)
         if not os.path.exists(train_folder):
             os.makedirs(train_folder)
 
         for video_folder in os.listdir(action_path):
-            filename = video_folder.split(VIDEO_NAME_SEPARATOR)[0]
+            # filename = video_folder.split(VIDEO_NAME_SEPARATOR)[0]
+            filename = video_folder
             if filename in test_filenames:
                 shutil.copy(os.path.join(action_path, video_folder),
                             os.path.join(test_folder, video_folder))
