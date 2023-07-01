@@ -1,14 +1,16 @@
-import * as Holistic from "@mediapipe/holistic";
-import * as drawingUtils from "@mediapipe/drawing_utils";
-import { useMemo } from "react";
-
-import { useRef, useEffect, useState } from "react";
-import { connect, draw } from "../../utils";
-import "../TranslatePage/Camera.css";
+import React, { useRef, useEffect, useState, useMemo } from "react";
 import { Switch, Space, Upload } from "antd";
 import { UploadChangeParam, UploadFile } from "antd/es/upload";
+import { connect, draw } from "../../utils";
+import * as Holistic from "@mediapipe/holistic";
+import * as drawingUtils from "@mediapipe/drawing_utils";
+import {
+  getMediapipeInstance,
+  releaseMediapipeInstance,
+} from "./MediapipeCameraInstance";
 
 let holistic: Holistic.Holistic | null = null;
+
 const dummyRequest = ({ file, onSuccess }: any) => {
   setTimeout(() => {
     onSuccess("ok");
@@ -20,21 +22,11 @@ function MediapipeCamera({
 }: {
   onResult: (results: Holistic.Results) => void;
 }) {
-  //const controls = window;
-
   const [uploadedVideo, setUploadedVideo] = useState<any>(null);
   const [useCamera, setUseCamera] = useState<boolean>(true);
   const canvasRef = useRef<null | HTMLCanvasElement>(null);
   const cameraRef = useRef<MediaStream | null>(null);
   const videoRef = useRef<any>(null);
-  const config = useMemo(
-    () => ({
-      locateFile: (file: any) => {
-        return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}`;
-      },
-    }),
-    []
-  );
 
   const onMediapipeResults = (results: Holistic.Results): void => {
     onResult(results);
@@ -43,14 +35,24 @@ function MediapipeCamera({
     if (!canvasCtx) return;
     draw(canvasCtx, results);
   };
+
   useEffect(() => {
-    holistic = new Holistic.Holistic(config);
-    holistic.setOptions({
-      smoothLandmarks: true,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5,
-    });
-    holistic.onResults(onMediapipeResults);
+    async function initHolistic() {
+      holistic = getMediapipeInstance();
+      //   await holistic.initialize();
+      holistic.setOptions({
+        smoothLandmarks: true,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5,
+      });
+      holistic.onResults(onMediapipeResults);
+    }
+    initHolistic();
+
+    return () => {
+      //   releaseMediapipeInstance();
+      //   holistic = null;
+    };
   }, []);
 
   useEffect(() => {
@@ -59,7 +61,9 @@ function MediapipeCamera({
       const renderCanvas = async () => {
         if (!videoRef.current || !holistic || video.paused || video.ended)
           return;
+
         await holistic.send({ image: video });
+
         requestAnimationFrame(renderCanvas);
       };
       renderCanvas();
@@ -75,10 +79,14 @@ function MediapipeCamera({
         },
       });
 
+      console.log({
+        facingMode: cameraRef.current !== null,
+      });
+
       if (videoRef.current && useCamera) {
         videoRef.current.srcObject = cameraRef.current;
       } else {
-        videoRef.current.srcObject = null;
+        if (videoRef.current) videoRef.current.srcObject = null;
         if (canvasRef.current) {
           const canvasCtx = canvasRef.current.getContext("2d");
           if (!canvasCtx) return;
@@ -91,7 +99,7 @@ function MediapipeCamera({
           );
         }
 
-        videoRef.current.src = uploadedVideo;
+        if (videoRef.current) videoRef.current.src = uploadedVideo;
       }
     }
     startCamera();
@@ -159,8 +167,8 @@ function MediapipeCamera({
           position: "absolute",
           top: 0,
           left: 0,
-          width: "0px ",
-          height: "0px",
+          width: "110px ",
+          height: "110px",
         }}
         ref={videoRef}
         src={uploadedVideo}
