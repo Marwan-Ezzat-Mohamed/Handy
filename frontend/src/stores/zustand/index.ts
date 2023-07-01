@@ -1,21 +1,22 @@
 import create from "zustand";
 
 import { persist, devtools } from "zustand/middleware";
-import { UserSlice, createUserSlice } from "./slices/userSlice";
 
-export type Store = UserSlice;
+import { LessonSlice, createLessonSlice } from "./slices/lessons";
+
+export type Store = LessonSlice;
 
 export const useGlobalStore = create<Store>()(
   devtools(
     persist(
       (...a) => ({
-        ...createUserSlice(...a),
+        ...createLessonSlice(...a),
       }),
       {
         name: "data", // name of item in the storage (must be unique)
         partialize: (state) => ({
-          user: state.user,
-        }), // only persist the customer slice
+          lessonInformation: state.lessonInformation,
+        }), // only persist the user slice
       }
     )
   )

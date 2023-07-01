@@ -16,7 +16,6 @@ export type PredictType = Pick<
   "leftHandLandmarks" | "rightHandLandmarks"
 >;
 
-const x: PredictType = {
-  leftHandLandmarks: [],
-  rightHandLandmarks: [],
+export type Lessons = {
+  [key: string]: Array<string>;
 };
