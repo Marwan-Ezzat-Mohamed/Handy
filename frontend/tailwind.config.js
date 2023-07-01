@@ -4,13 +4,10 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        gold: "#FEB86F",
-        violet: "#9194CE",
-        red: "#F492A0",
-        blue: "#3E479B",
-        yellow: {
-          50: "#fff6df",
-        },
+        primary: "#683AFF",
+        dark: "#302277",
+        gold: "#FFE090",
+        grey: "#EDEDF7",
       },
       screens: {
         xs: "475px",
