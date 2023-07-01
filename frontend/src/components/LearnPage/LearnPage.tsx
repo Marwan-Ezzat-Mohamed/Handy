@@ -10,13 +10,13 @@ function LearnPage() {
   const [tabIndex, setTabIndex] = React.useState(0);
   return (
     <div className="h-full overflow-y-auto bg-slate-200">
-      <Tabs selectedTabClassName="text-white bg-primary rounded-md " >
-        <TabList className="my-6 mx-auto flex w-1/2  rounded-lg border-2 border-primary bg-slate-200 font-semibold text-primary md:w-1/6">
-          <Tab className="flex flex-grow cursor-pointer justify-center py-4">
+      <Tabs selectedTabClassName="text-white bg-primary rounded-md ">
+        <TabList className="my-6 mx-auto flex w-1/2 rounded-lg  border-2 border-primary bg-slate-200 font-semibold text-primary shadow-lg md:w-1/6">
+          <Tab className="flex flex-grow cursor-pointer justify-center py-2 ">
             Lessons
           </Tab>
-          <Tab className="flex flex-grow cursor-pointer justify-center py-4">
-            Quizes
+          <Tab className="flex flex-grow cursor-pointer justify-center py-2 ">
+            Quizzes
           </Tab>
         </TabList>
         <TabPanel>
