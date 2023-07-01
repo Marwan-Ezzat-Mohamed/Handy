@@ -6,7 +6,7 @@ function QuizDetails() {
   return (
     <div
       onClick={() => navigate("/quiz")}
-      className="mx-auto my-5 flex h-12 w-3/4 items-center justify-between rounded-lg bg-primary text-lg font-semibold text-white md:w-1/2"
+      className="mx-auto my-5 flex h-12 w-3/4 cursor-pointer items-center justify-between rounded-lg bg-primary text-lg font-semibold text-white md:w-1/2"
     >
       <div className="ml-5">Quiz 1</div>
       <div className="mr-2">

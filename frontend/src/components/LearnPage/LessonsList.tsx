@@ -1,5 +1,4 @@
 import LessonDetails from "./LessonDetails";
-import { TabList, Tabs, Tab, TabPanel } from "react-tabs";
 import "react-tabs/style/react-tabs.css";
 
 function LessonsList() {
