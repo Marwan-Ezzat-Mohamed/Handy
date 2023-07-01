@@ -26,7 +26,7 @@ const Camera = ({ startRef, setPrediction, setLoading }: CameraProps) => {
       //reset the prediction
       //setPrediction([]);
     }
-    if (resultsRef.current.length >= FRAMES_FOR_PREDICTION * 1.5) {
+    if (resultsRef.current.length >= FRAMES_FOR_PREDICTION) {
       predictFrames(structuredClone(resultsRef.current));
       resultsRef.current = resultsRef.current.slice(FRAMES_FOR_PREDICTION);
     }
@@ -38,6 +38,7 @@ const Camera = ({ startRef, setPrediction, setLoading }: CameraProps) => {
     const worker = new PredictionWorker();
     worker.onmessage = function (event: any) {
       const result = event.data;
+      console.log(result);
       setPrediction((prev) => [...prev, ...result]);
     };
     worker.postMessage({
