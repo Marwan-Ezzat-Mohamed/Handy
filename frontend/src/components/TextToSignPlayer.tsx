@@ -8,9 +8,6 @@ interface TextToSignPlayerProps {
 const DEFAULT_PLAYBACK_SPEED = 1;
 
 const TextToSignPlayer = ({ text }: TextToSignPlayerProps) => {
-  console.log({
-    text,
-  });
   const videoRef = useRef<HTMLVideoElement>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(
@@ -39,27 +36,28 @@ const TextToSignPlayer = ({ text }: TextToSignPlayerProps) => {
 
   if (loading)
     return (
-      <div className="flex items-center justify-center ">
+      <div className="flex flex-grow flex-col items-center justify-center">
         <progress className="progress w-56"></progress>
       </div>
     );
 
   return (
-    <div className="flex h-full flex-col items-center">
+    <div className="flex w-full flex-col items-center">
       <div
-        className="flex flex-grow flex-col  rounded-xl text-white"
+        className="aspect-video  rounded-xl text-white"
         style={{
-          height: "clamp(150px, 90%, 520px)",
+          height: "clamp(150px, 90%, 320px)",
         }}
       >
         <video
           style={{
-            width: "100%",
             height: "100%",
+            width: "100%",
+            maxHeight: "270px",
           }}
           ref={videoRef}
           src={videoUrl}
-          className="aspect-video rounded-xl"
+          //   className="aspect-video rounded-xl"
           loop
           autoPlay
         />
