@@ -17,7 +17,7 @@ class App extends React.Component {
           {/* <FormatBar /> */}
           <Routes>
             <Route path="/" element={<LearnPage />}></Route>
-            <Route path="/lesson" element={<LessonContent />}></Route>
+            <Route path="/lesson/:lesson" element={<LessonContent />}></Route>
             <Route path="/quiz" element={<QuizContent />}></Route>
             <Route path="/signtotext" element={<SignToSpeech />}></Route>
             <Route path="/texttosign" element={<TextToSign />}></Route>

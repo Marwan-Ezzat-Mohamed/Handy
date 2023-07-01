@@ -2,55 +2,84 @@ import TextToSignPlayer from "../TextToSignPlayer";
 import ArrowCircleRightIcon from "@mui/icons-material/ArrowCircleRight";
 import ArrowCircleLeftIcon from "@mui/icons-material/ArrowCircleLeft";
 import SignLanguageIcon from "@mui/icons-material/SignLanguage";
-import { useNavigate } from "react-router-dom";
-import React from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import React, { useEffect, useState } from "react";
 import Camera from "../TranslatePage/Camera";
+import LessonTest from "./LessonTest";
+import useGlobalStore from "../../stores/zustand";
 
 function LessonContent() {
+  //get the lesson name from the url
+  const { lesson } = useParams<{ lesson: string }>();
+  const lessonWords = useGlobalStore((state) => state.lessons[lesson!]);
+  const [currentWordIndex, setCurrentWordIndex] = useState(0);
+
   const navigate = useNavigate();
-  const [currentView, setCurrentView] = React.useState("sample");
+  const [isLearn, setIsLearn] = React.useState(true);
   const [prediction, setPrediction] = React.useState<Array<string>>([]);
   const [loading, setLoading] = React.useState(false);
   const startRef = React.useRef(false);
+
+  useEffect(() => {
+    setCurrentWordIndex(0);
+  }, [lessonWords]);
+
   return (
-    <div className="flex h-full flex-col bg-slate-50  ">
-      <div className="flex h-1/6 items-center justify-between ">
-        <button className="mx-10 text-primary" onClick={() => navigate("/")}>
-          <ArrowCircleLeftIcon fontSize="large" />
+    <div className="flex h-full flex-col bg-slate-50  px-5 py-10">
+      <div className="flex items-center justify-between ">
+        <button
+          className=" text-4xl text-primary"
+          onClick={() => navigate("/")}
+        >
+          <ArrowCircleLeftIcon fontSize="inherit" />
         </button>
-        <h1 className="mx-10 text-lg font-bold text-primary">Lesson 1</h1>
+        <h1 className="text-2xl font-bold text-primary">{lesson}</h1>
       </div>
-      <div className="flex h-4/5 flex-col ">
-        <div className="mx-auto  flex h-1/6 w-1/2 items-center rounded-md bg-yellow-50  text-center align-middle ">
-          <h1 className=" mx-auto text-5xl font-extrabold text-black ">
-            {" "}
-            Word{" "}
+      <div className="flex flex-grow flex-col justify-between">
+        <div className="flex w-full justify-center rounded-md bg-yellow-50 p-2 text-center">
+          <h1 className="text-5xl font-extrabold text-black ">
+            {lessonWords?.[currentWordIndex]}
           </h1>
         </div>
-        <div className=" my-5 mx-auto h-3/5  w-2/3 ">
-          {currentView == "sample" && <TextToSignPlayer text={["dance"]} />}
-          {currentView == "test" && <h1>Soon</h1>}
+        <div className=" my-5 flex  flex-grow items-center justify-center">
+          {/* {isLearn && <TextToSignPlayer text={["dance"]} />} */}
+          {<LessonTest />}
         </div>
-        <div className="mx-auto flex h-1/6 w-2/3 items-center justify-between  text-center">
-          {currentView === "sample" && (
-            <button
-              className="btn-lg btn  border-warning bg-warning text-white"
-              onClick={() => setCurrentView("test")}
-            >
-              {"Test"}
-              <SignLanguageIcon />
-            </button>
-          )}
-          {currentView === "test" && (
-            <button
-              className="btn-lg btn  border-warning bg-warning text-white"
-              onClick={() => setCurrentView("sample")}
-            >
-              {"Learn"}
-              <SignLanguageIcon />
-            </button>
-          )}
-          <button className="btn-lg btn  border-primary bg-primary text-white">
+        <div className="flex justify-center">
+          <button
+            className="btn  my-6 border-warning  bg-warning text-white"
+            onClick={() => setIsLearn((prev) => !prev)}
+          >
+            {isLearn ? "Test" : "Learn"}
+            <SignLanguageIcon />
+          </button>
+        </div>
+        <div className="flex items-center justify-between  text-center ">
+          <button
+            className="btn border-primary bg-primary  text-white"
+            onClick={() =>
+              setCurrentWordIndex((prev) => {
+                if (prev === 0) {
+                  return prev;
+                }
+                return prev - 1;
+              })
+            }
+          >
+            <ArrowCircleLeftIcon />
+            {"prev"}
+          </button>
+          <button
+            className="btn border-primary bg-primary  text-white"
+            onClick={() =>
+              setCurrentWordIndex((prev) => {
+                if (prev === lessonWords.length - 1) {
+                  return prev;
+                }
+                return prev + 1;
+              })
+            }
+          >
             {"next"}
             <ArrowCircleRightIcon />
           </button>
