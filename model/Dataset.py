@@ -807,7 +807,7 @@ if __name__ == '__main__':
                         d.process()
                         # wait for cpu cores to finish
 
-                        split_data()
+                        #split_data()
                         FRAMES_PER_VIDEO = num_of_frames
                         results = {}
                         accuracy_data, max_accuracy, average_accuracy = main()
