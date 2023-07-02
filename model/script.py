@@ -4,7 +4,7 @@ import cv2
 from moviepy.video.io.VideoFileClip import VideoFileClip
 import shutil
 from tqdm import tqdm
-from mediapipeHelper import *
+
 import multiprocessing
 from vidaug import augmentors as va
 
@@ -26,12 +26,12 @@ def convert_to_avcmp4(video_path):
     os.replace(output_path, video_path)
 
 
-def get_all_vids_paths(folder_name):
+def get_all_vids_paths(folder_name, ext='.mp4'):
     # get all the paths of the videos (.mp4) in folder or subfolders
     vids_paths = []
     for root, dirs, files in os.walk(folder_name):
         for file in files:
-            if file.endswith('.mp4'):
+            if file.endswith(ext):
                 vids_paths.append(os.path.join(root, file))
     return vids_paths
 
@@ -124,7 +124,74 @@ def make_keypoints_json(videos_paths):
         json.dump(keypoints_map, f)
 
 
+def move_percentage_of_data(percent):
+    # folder structure MP_DATA_NEW/Action/Video.mp4
+    # get all the unique videos paths with the seprator in the video name
+    separator = '$separator$'
+    for action in os.listdir('MP_DATA_NEW'):
+        # get all the videos paths
+        videos_paths = get_all_vids_paths(os.path.join(
+            'MP_DATA_NEW', action), '.npy')
+        # get the unique videos paths
+        unique_videos_paths = set()
+        for video in videos_paths:
+            video_name = video.split(os.sep)[-1]
+            video_name = video_name.split(separator)[0]
+            unique_videos_paths.add(
+                video_name)
+        # get the number of videos to be removed
+        num_of_videos_to_be_removed = int(
+            len(unique_videos_paths) * (percent / 100))
+        print(f"Removing {num_of_videos_to_be_removed} videos from {action}")
+        # move the videos to the MP_DATA_NEW_2 folder
+        for video in list(unique_videos_paths)[:num_of_videos_to_be_removed]:
+            # get all the videos that include the video name
+            videos_to_be_removed = [
+                video_path for video_path in videos_paths if video in video_path]
+            # move the videos to the MP_DATA_NEW_2 folder
+            for video_path in videos_to_be_removed:
+                action_name = video_path.split(os.sep)[-2]
+                dst = os.path.join('MP_DATA_NEW_3', action_name, video_name)
+                dst = os.path.dirname(dst)
+                # move the video to the MP_DATA_NEW_2 folder
+                if not os.path.exists(dst):
+                    os.makedirs(dst, exist_ok=True)
+                try:
+                    shutil.move(video_path, dst)
+                except:
+                    print(f"Couldn't move {video_path} to {dst}")
+
+
+def put_all_videos_in_one_folder(src, dst) -> None:
+    if not os.path.exists(dst):
+        os.makedirs(dst, exist_ok=True)
+    # ['whatever//whatever//action//video.mp4']
+    vids = get_all_vids_paths(src, '.npy')
+    print(f"Found {len(vids)} videos")
+    pbar: tqdm = tqdm(
+        total=len(vids), desc='Putting all videos in one folder')
+    for video in vids:
+        action: str = video.split(os.sep)[-2]
+        video_name: str = video.split(os.sep)[-1]
+        print(f"Copying {video_name} to {action}")
+        # check if video already exists
+        if not os.path.exists(os.path.join(dst, action, video_name)):
+            # create the folder for the action if it doesn't exist
+            if not os.path.exists(os.path.join(dst, action)):
+                os.makedirs(os.path.join(
+                    dst, action), exist_ok=True)
+            # copy the video to the folder
+            shutil.move(video, os.path.join(
+                dst, action))
+        pbar.update()
+
+
 if __name__ == '__main__':
+    put_all_videos_in_one_folder(
+        src='MP_DATA_NEW_3', dst='MP_DATA_NEW')
+
+    # move_percentage_of_data(30)
+
     # videos = get_all_vids_paths('DATA')
     # for video in videos:
     #     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
@@ -132,7 +199,7 @@ if __name__ == '__main__':
 
     #########################
     # datasets_path = 'DATASETS'
-    unique_videos_path = "sentence"
+    # unique_videos_path = "sentence"
     # # create a folder to store the unique videos
     # if not os.path.exists(unique_videos_path):
     #     os.mkdir(unique_videos_path)
@@ -172,9 +239,9 @@ if __name__ == '__main__':
     #     pbar.update(1)
 
     # # DATASETS/DATASET/ACTION/VIDEO.mp4
-    all_vids = get_all_vids_paths(unique_videos_path)
+    # all_vids = get_all_vids_paths(unique_videos_path)
     # convert all videos to mp4 format regardless of their original format
     # replace the original videos with the converted ones
     # pbar = tqdm(total=len(all_vids))
 
-    make_keypoints_json(all_vids)
+    # make_keypoints_json(all_vids)
