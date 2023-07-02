@@ -16,12 +16,11 @@ from main import main, FRAMES_PER_VIDEO
 import pandas as pd
 from helper import split_data, VIDEO_NAME_SEPARATOR
 
-
 class Dataset:
 
     # static variables
     resize_values = [0.5, 1.5]
-    features_output_folder_name: str = 'MP_DATA_NEW'
+    # features_output_folder_name = 'MP_Data_New'
     num_cpu_for_multiprocessing = multiprocessing.cpu_count()
     rotate_times = 0,
     aspect_ratio_times = 0,
@@ -31,15 +30,12 @@ class Dataset:
             self,
             dataset_folder_path="DATASETS",
             num_frames_per_video=30,
-            features_output_folder_name="MP_DATA_NEW",
             resize_values=[0.5, 1.5],
             rotate_times=0,
             aspect_ratio_times=0,
             non_moving_frames_threshold=0,
             save_features_only=True,
     ):
-        if features_output_folder_name is not None:
-            Dataset.features_output_folder_name = "MP_DATA_NEW"
         if resize_values is not None:
             Dataset.resize_values = resize_values
 
@@ -49,7 +45,7 @@ class Dataset:
         self.dataset_folder_path = dataset_folder_path
         self.num_frames_per_video = num_frames_per_video
         self.all_videos_folder_name = 'all_vids'
-        self.all_vids_augmented_folder_name = 'all_vids_augmented'
+        # self.all_vids_augmented_folder_name = 'all_vids_augmented'
 
         self.save_features_only = save_features_only
 
@@ -59,21 +55,22 @@ class Dataset:
             self._remove_none_moving_frames_from_videos()
         self._adjust_videos_total_frames()
         self._rename_videos()
+        split_data()
         self._increase_videos_by_data_augmentation()
-        self._save_videos_per_actions_json()
+        # self._save_videos_per_actions_json()
         if not self.save_features_only:
             self._save_videos_features()
 
-    def _rename_videos(self) -> None:
-        vids: List[str] = Dataset.get_all_vids_paths(
-            self.all_videos_folder_name)
-        Dataset.rename_videos(vids)
+    # def _rename_videos(self) -> None:
+    #     vids: List[str] = Dataset.get_all_vids_paths(
+    #         self.all_videos_folder_name)
+    #     Dataset.rename_videos(vids)
 
-    @staticmethod
-    def rename_videos(vids):
-        for vid in vids:
-            # rename from all_vids/action/video.mp4 to all_vids/action/video$separator$.mp4
-            os.rename(vid, vid.replace('.mp4', VIDEO_NAME_SEPARATOR + '.mp4'))
+    # @staticmethod
+    # def rename_videos(vids):
+    #     for vid in vids:
+    #         # rename from all_vids/action/video.mp4 to all_vids/action/video$separator$.mp4
+    #         os.rename(vid, vid.replace('.mp4', VIDEO_NAME_SEPARATOR + '.mp4'))
 
     def _put_all_videos_in_one_folder(self) -> None:
         if not os.path.exists(self.all_videos_folder_name):
@@ -112,17 +109,26 @@ class Dataset:
             vids, self.num_frames_per_video, self.all_videos_folder_name)
 
     def _increase_videos_by_data_augmentation(self) -> None:
-        Dataset.increase_videos_by_data_augmentation(
-            self.all_videos_folder_name, self.all_vids_augmented_folder_name, self.save_features_only)
+        Dataset.increase_videos_by_data_augmentation('Train_unaugmented', 'Train', self.save_features_only)
+        shutil.rmtree('Train_unaugmented')
 
-    def _save_videos_per_actions_json(self) -> None:
-        Dataset.save_videos_per_actions_json(
-            self.all_vids_augmented_folder_name)
+    # def _save_videos_per_actions_json(self) -> None:
+    #     Dataset.save_videos_per_actions_json(
+    #         self.all_vids_augmented_folder_name)
 
     def _save_videos_features(self) -> None:
-        vids = Dataset.get_all_vids_paths(
-            self.all_vids_augmented_folder_name)
-        Dataset.save_videos_features(vids)
+        vidsTRAIN = Dataset.get_all_vids_paths('Train')
+        Dataset.save_videos_features(vidsTRAIN, 'MP_Train')
+        
+        vidsTEST = Dataset.get_all_vids_paths('Test')
+        Dataset.save_videos_features(vidsTEST, 'MP_Test')
+        
+        vidsVAL = Dataset.get_all_vids_paths('Val')
+        Dataset.save_videos_features(vidsVAL, 'MP_Val')
+        
+        shutil.rmtree('Train')
+        shutil.rmtree('Test')
+        shutil.rmtree('Val')
 
     @staticmethod
     def regulate_videos_total_frames(videos_paths, num_frames_per_video, output_folder_name):
@@ -145,17 +151,18 @@ class Dataset:
         os.rename('all_vids_regulated', 'all_vids')
 
     @staticmethod
-    def save_video_features(video_path: str):
+    def save_video_features(video_path, output):
         with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
             # get the number of frames in the video
             cap = cv2.VideoCapture(os.path.join(video_path))
             length: int = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-            # output path will be the same as input but with changing first folder to MP_DATA_NEW and adding .npy
+            # output path will be the same as input but with changing first folder to (MP_Train || MP_Test || MP_Val) and adding .npy
             # split using the os separator
             output_path = video_path.split(os.sep)
 
-            output_path[0] = Dataset.features_output_folder_name
+            output_path[0] = output
+            # print(f'the output folder is {output_path}')
             # remove the file extension
             output_path[-1] = os.path.splitext(output_path[-1])[0]
             # add .npy
@@ -188,14 +195,14 @@ class Dataset:
             cv2.destroyAllWindows()
 
     @staticmethod
-    def save_videos_features(vids: List[str]):
+    def save_videos_features(vids: List[str], output):
         inputs = []
         for vid in vids:
-            inputs.append((vid))
+            inputs.append((vid, output))
 
         with multiprocessing.Pool(processes=Dataset.num_cpu_for_multiprocessing) as p:
             with tqdm(total=len(inputs), desc='Saving videos features') as pbar:
-                for _ in p.imap_unordered(Dataset.save_video_features, inputs):
+                for _ in p.istarmap(Dataset.save_video_features, inputs):
                     pbar.update()
 
     @staticmethod
@@ -507,7 +514,7 @@ class Dataset:
         cv2.destroyAllWindows()
 
     @staticmethod
-    def increase_videos_by_data_augmentation(folder_path='all_vids', output_folder="all_vids_augmented", save_features_only=False):
+    def increase_videos_by_data_augmentation(folder_path, output_folder, save_features_only=False):
         all_pbar = tqdm(total=len(os.listdir(folder_path)),
                         desc='Increasing videos by data augmentation')
 
@@ -542,10 +549,10 @@ class Dataset:
                     for _ in p.istarmap(Dataset.rotate_video, inputs):
                         pbar.update()
 
-            if save_features_only:
-                Dataset.save_videos_features(
-                    Dataset.get_all_vids_paths(output_folder))
-                shutil.rmtree(output_folder)
+            # if save_features_only:
+            #     Dataset.save_videos_features(
+            #         Dataset.get_all_vids_paths(output_folder))
+            #     shutil.rmtree(output_folder)
 
             all_pbar.update()
 
@@ -720,8 +727,7 @@ class Dataset:
 
 
 def reset_state():
-    folders_to_remove = ['MP_DATA_NEW', 'MP_Test', 'MP_Val', 'MP_Train', 'all_vids',
-                         'all_vids_augmented']
+    folders_to_remove = ['MP_Test', 'MP_Val', 'MP_Train', 'all_vids', 'Test', 'Val', 'Train']
     files_to_remove = ['x_train.npy', 'y_train.npy', 'x_test.npy',
                        'y_test.npy', 'x_val.npy', 'y_val.npy']
 
@@ -753,8 +759,8 @@ if __name__ == '__main__':
         # [1.5, 0.5, 1.8, 1.2],
         # [1.5, 0.5, 1.8],
         # [1.5, 0.5],
-        # [1.5],
-        [],
+        [1.5]
+        # [],
 
     ]
     possible_rotate_times = [1]
@@ -801,7 +807,7 @@ if __name__ == '__main__':
                         d.process()
                         # wait for cpu cores to finish
 
-                        split_data()
+                        #split_data()
                         FRAMES_PER_VIDEO = num_of_frames
                         results = {}
                         accuracy_data, max_accuracy, average_accuracy = main()

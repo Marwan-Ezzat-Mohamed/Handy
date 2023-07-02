@@ -18,7 +18,7 @@ from keras import regularizers, Model
 TRAIN_DATA_PATH = os.path.join('MP_Train')
 TEST_DATA_PATH = os.path.join('MP_Test')
 VAL_DATA_PATH = os.path.join('MP_Val')
-MAIN_DATA_PATH = os.path.join('MP_DATA_NEW')
+MAIN_DATA_PATH = TRAIN_DATA_PATH # no longer have mp data new
 
 LABEL_MAP_PATH = os.path.join('label_map.json')
 
@@ -69,7 +69,7 @@ def build_model(actions):
     model.add(AveragePooling1D(pool_size=2))
     model.add(Dropout(0.5, seed=42))
 
-    model.add(Conv1D(256*multi, kernel_size=2, activation='elu'))
+    model.add(Conv1D(256*multi, kernel_size=2, activation='elu', kernel_regularizer=tf.keras.regularizers.l2( l=0.01)))
     model.add(BatchNormalization())
     model.add(AveragePooling1D(pool_size=2))
     model.add(Dropout(0.5, seed=42))
@@ -81,9 +81,9 @@ def build_model(actions):
 
     model.add(Flatten())
 
-    model.add(Dense(512*multi, activation='elu'))
+    model.add(Dense(512*multi, activation='elu', kernel_regularizer=tf.keras.regularizers.l2( l=0.01)))
     # model.add(Dropout(0.5, seed=42))
-    model.add(Dense(512*multi, activation='elu'))
+    model.add(Dense(512*multi, activation='elu', kernel_regularizer=tf.keras.regularizers.l2( l=0.01)))
     model.add(Dropout(0.5, seed=42))
     model.add(Dense(actions.shape[0], activation='softmax'))
     opt = Adam(learning_rate=0.0001)
@@ -97,12 +97,12 @@ def build_model(actions):
 
 def train_model(model, X_train, y_train, X_val, y_val, batch_size=16):
 
-    early_stopping = EarlyStopping(monitor='val_loss', patience=300)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=30)
     tensorboard = tf.keras.callbacks.TensorBoard(
         log_dir=os.path.join("logs", 'test'))
 
     checkpoint = tf.keras.callbacks.ModelCheckpoint(
-        './models/best_model.h5', monitor='val_accuracy', verbose=1,
+        './models/best_model{batch_size}.h5', monitor='val_accuracy', verbose=1,
         save_best_only=True, mode='max', save_freq='epoch', save_weights_only=False
     )
 
@@ -182,23 +182,22 @@ def main():
     # get the actions from the y_val
 
     batch_sizes = [
-
         # 32,
         # 16,
         # 8,
         # 4,
         # 2,
 
-        # actions.shape[0],
-        # actions.shape[0]//2,
-        actions.shape[0]//4,
+        # actions.shape[0]
+        20,
+        actions.shape[0]//2,
+        # actions.shape[0]//4
         # actions.shape[0]*4,
-        # actions.shape[0]*2,
-
+        actions.shape[0]*2,
     ]
 
     # sort the batch sizes
-    batch_sizes.sort()
+    batch_sizes.sort(reverse=True)
     batch_sizes_info = {}
 
     max_accuracy = 0
@@ -210,10 +209,10 @@ def main():
         history = train_model(model, X_train, y_train,
                               X_val, y_val, batch_size=batch_size)
         # save the history to a file using pickle
-        with open('history.pkl', 'wb') as f:
+        with open(f'history{batch_size}.pkl', 'wb') as f:
             pickle.dump(history.history, f)
 
-        model.load_weights("./models/best_model.h5")
+        model.load_weights(f"./models/best_model{batch_size}.h5")
         # accuracy = show_test_results(model, X_test, y_test)
         X_test, y_test = load_features(actions, label_map, data_type='test')
         loss, categorical_accuracy, accuracy = model.evaluate(
@@ -240,8 +239,9 @@ def main():
     print(
         f"batch_sizes_info: {batch_sizes_info} max_accuracy: {max_accuracy} average_accuracy: {average_accuracy}")
 
+    
+    
     return batch_sizes_info, max_accuracy, average_accuracy
-
 
 if __name__ == '__main__':
     main()
