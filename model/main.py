@@ -18,7 +18,7 @@ from keras import regularizers, Model
 TRAIN_DATA_PATH = os.path.join('MP_Train')
 TEST_DATA_PATH = os.path.join('MP_Test')
 VAL_DATA_PATH = os.path.join('MP_Val')
-MAIN_DATA_PATH = TRAIN_DATA_PATH # no longer have mp data new
+MAIN_DATA_PATH = TRAIN_DATA_PATH  # no longer have mp data new
 
 LABEL_MAP_PATH = os.path.join('label_map.json')
 
@@ -69,7 +69,8 @@ def build_model(actions):
     model.add(AveragePooling1D(pool_size=2))
     model.add(Dropout(0.5, seed=42))
 
-    model.add(Conv1D(256*multi, kernel_size=2, activation='elu', kernel_regularizer=tf.keras.regularizers.l2( l=0.01)))
+    model.add(Conv1D(256*multi, kernel_size=2, activation='elu',
+              kernel_regularizer=tf.keras.regularizers.l2(l=0.01)))
     model.add(BatchNormalization())
     model.add(AveragePooling1D(pool_size=2))
     model.add(Dropout(0.5, seed=42))
@@ -81,9 +82,11 @@ def build_model(actions):
 
     model.add(Flatten())
 
-    model.add(Dense(512*multi, activation='elu', kernel_regularizer=tf.keras.regularizers.l2( l=0.01)))
+    model.add(Dense(512*multi, activation='elu',
+              kernel_regularizer=tf.keras.regularizers.l2(l=0.01)))
     # model.add(Dropout(0.5, seed=42))
-    model.add(Dense(512*multi, activation='elu', kernel_regularizer=tf.keras.regularizers.l2( l=0.01)))
+    model.add(Dense(512*multi, activation='elu',
+              kernel_regularizer=tf.keras.regularizers.l2(l=0.01)))
     model.add(Dropout(0.5, seed=42))
     model.add(Dense(actions.shape[0], activation='softmax'))
     opt = Adam(learning_rate=0.0001)
@@ -102,12 +105,12 @@ def train_model(model, X_train, y_train, X_val, y_val, batch_size=16):
         log_dir=os.path.join("logs", 'test'))
 
     checkpoint = tf.keras.callbacks.ModelCheckpoint(
-        './models/best_model{batch_size}.h5', monitor='val_accuracy', verbose=1,
+        f'./models/best_model{batch_size}.h5', monitor='val_accuracy', verbose=1,
         save_best_only=True, mode='max', save_freq='epoch', save_weights_only=False
     )
 
     callbacks_list = [checkpoint, tensorboard, early_stopping]
-    history = model.fit(X_train, y_train, epochs=100, batch_size=batch_size,
+    history = model.fit(X_train, y_train, epochs=1000, batch_size=batch_size,
                         validation_data=(X_val, y_val), verbose=1, callbacks=callbacks_list,  use_multiprocessing=True)
     return history
 
@@ -189,11 +192,12 @@ def main():
         # 2,
 
         # actions.shape[0]
-        20,
-        actions.shape[0]//2,
-        # actions.shape[0]//4
-        # actions.shape[0]*4,
-        actions.shape[0]*2,
+        # 20,
+        # actions.shape[0]//2,
+        actions.shape[0]//4
+        # # actions.shape[0]*4,
+        # actions.shape[0]*2,
+        # 2
     ]
 
     # sort the batch sizes
@@ -213,6 +217,11 @@ def main():
             pickle.dump(history.history, f)
 
         model.load_weights(f"./models/best_model{batch_size}.h5")
+
+        del X_train
+        del y_train
+        del X_val
+        del y_val
         # accuracy = show_test_results(model, X_test, y_test)
         X_test, y_test = load_features(actions, label_map, data_type='test')
         loss, categorical_accuracy, accuracy = model.evaluate(
@@ -239,9 +248,8 @@ def main():
     print(
         f"batch_sizes_info: {batch_sizes_info} max_accuracy: {max_accuracy} average_accuracy: {average_accuracy}")
 
-    
-    
     return batch_sizes_info, max_accuracy, average_accuracy
+
 
 if __name__ == '__main__':
     main()

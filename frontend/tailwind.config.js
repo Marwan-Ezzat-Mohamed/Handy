@@ -43,6 +43,9 @@ module.exports = {
       {
         pattern: /^border-/,
       },
+      {
+        pattern: /^opacity-/,
+      },
     ],
   },
   plugins: [require("daisyui")],

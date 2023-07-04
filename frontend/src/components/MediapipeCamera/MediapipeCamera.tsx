@@ -123,15 +123,14 @@ function MediapipeCamera({
   };
 
   return (
-    <div className="flex h-full flex-col items-center justify-center rounded-xl bg-white">
+    <div className="flex flex-grow  flex-col items-center justify-center rounded-xl ">
       <canvas
         className="flex aspect-video h-full rounded-xl"
-        ref={canvasRef}
         style={{
-          maxHeight: "400px",
           maxWidth: "100%",
-          minWidth: "100%",
+          maxHeight: "100%",
         }}
+        ref={canvasRef}
       />
 
       <div style={{ marginTop: "3px" }}>
@@ -142,7 +141,11 @@ function MediapipeCamera({
             setUseCamera((prev) => !prev);
           }}
         >
-          <Switch checkedChildren="Video" unCheckedChildren="Camera" />
+          <Switch
+            checkedChildren="Video"
+            unCheckedChildren="Camera"
+            className="bg-primary text-primary"
+          />
         </Space>
         {!useCamera && (
           <Upload
@@ -167,8 +170,8 @@ function MediapipeCamera({
           position: "absolute",
           top: 0,
           left: 0,
-          width: "110px ",
-          height: "110px",
+          width: "0px ",
+          height: "0px",
         }}
         ref={videoRef}
         src={uploadedVideo}

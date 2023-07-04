@@ -9,18 +9,11 @@ type PredictionProps = {
 function Prediction({ startRef, prediction, loading }: PredictionProps) {
   const [startRecording, setStartRecording] = useState<boolean>(false);
   return (
-    <div
-      style={{ backgroundColor: "#FFFFFF" }}
-      className="flex h-full flex-col p-2 text-center "
-    >
-      <div className="translation-box flex flex-grow flex-col items-center justify-between rounded-xl text-black">
-        <label
-          style={{
-            fontSize: 24,
-          }}
-        >
-          {prediction.filter((res) => res !== "africa").join(" ")}
-        </label>
+    <div className="flex h-full flex-col p-2 text-center ">
+      <div className=" flex flex-grow flex-col items-center justify-between rounded-xl bg-[#fff6df] text-2xl text-black">
+        {prediction.filter((res) => res !== "africa").join(" ")}
+      </div>
+      <div>
         <Button
           variant="contained"
           onClick={() => {
@@ -29,7 +22,7 @@ function Prediction({ startRef, prediction, loading }: PredictionProps) {
               return !prev;
             });
           }}
-          color="warning"
+          className="w-auto bg-primary"
         >
           {loading ? "Loading" : startRecording ? "Stop" : "Start"}
         </Button>

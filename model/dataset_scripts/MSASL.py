@@ -78,77 +78,42 @@ class loggerOutputs:
 def cut_video(video_path, start_frame, end_frame, output_path):
 
     if os.path.exists(output_path):
-
         return
 
     # remove file name from output path
-
     download_path = os.path.dirname(output_path)
-
     if not os.path.exists(download_path):
-
         os.makedirs(download_path)
 
     # Open the input video and get the video properties
-
     cap = cv2.VideoCapture(video_path)
-
     if not cap.isOpened():
-
         print("Error: Could not open video")
-
         return
 
     frame_width = int(cap.get(3))
-
     frame_height = int(cap.get(4))
-
     fps = cap.get(cv2.CAP_PROP_FPS)
-
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-
     # Create the output video
-
     out = cv2.VideoWriter(output_path, fourcc, fps,
                           (frame_width, frame_height))
-
     # Jump to the starting frame
-
-    for i in range(start_frame):
-
-        # use cap.grab() to skip frames
-
-        ret, frame = cap.read()
-
-        if not ret:
-
-            print("Error: Could not grab frame", str(
-                start_frame) + " end frame: ", str(end_frame))
-
-            return
+    cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
 
     # Process the frames and write them to the output video asynchronously
 
     while True:
-
         ret, frame = cap.read()
-
         if not ret:
-
             break
-
         # Write the frame to the output video
-
         out.write(frame)
-
-        if cap.get(cv2.CAP_PROP_POS_FRAMES) >= end_frame:
-
+        if cap.get(cv2.CAP_PROP_POS_FRAMES) >= end_frame+5:
             break
 
     # Release the input and output video objects
-
     cap.release()
-
     out.release()
 
 
@@ -171,35 +136,30 @@ def download_video(url, path):
     # Set the options for the youtube-dl downloader
 
     options = {
-
         "format": "bestvideo/best",
-
         "outtmpl": path,
 
-        'quiet': True,
-
-        "logger": loggerOutputs,
     }
 
     # add https:// to url if not present
 
     if not urlparse(url).scheme:
-
         url = "https://" + url
 
     try:
         with YoutubeDL(options) as ydl:
-            ydl.download([url])
+            ydl.download(url)
+            print("Downloaded video")
             return True
 
     except Exception as e:
-
+        print("Error downloading video", url)
         return False
 
 
 def download_parallel(videos_pool):
 
-    with mpp.Pool(processes=4) as pool:
+    with mpp.Pool() as pool:
         for _ in pool.starmap(download_video, videos_pool):
             pass
 
@@ -624,7 +584,7 @@ def calc_videos():
 
 if __name__ == "__main__":
 
-    download_videos_from_json("MS-ASL/MSASL_val.json",
+    download_videos_from_json("MS-ASL/test.json",
                               os.path.join("MSASL", "MSASL_val"))
 
     print("done val")

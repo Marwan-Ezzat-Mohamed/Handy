@@ -15,15 +15,9 @@ function LearnPage() {
           <Tab className="flex flex-grow cursor-pointer justify-center py-2 ">
             Lessons
           </Tab>
-          <Tab className="flex flex-grow cursor-pointer justify-center py-2 ">
-            Quizzes
-          </Tab>
         </TabList>
         <TabPanel>
           <LessonsList />
-        </TabPanel>
-        <TabPanel>
-          <QuizesList />
         </TabPanel>
       </Tabs>
     </div>
