@@ -1,5 +1,5 @@
 import { useState } from "react";
-import SigntoSpeech from "../SignToSpeech";
+import SigntoText from "../SignToText";
 import FormatBar from "./FormatBar";
 import TextToSign from "../TextToSign";
 
@@ -13,11 +13,7 @@ const TranslatePage = () => {
         setTranslationDirection={setTranslationDirection}
         translationDirection={translationDirection}
       />
-      {translationDirection === "signToText" ? (
-        <SigntoSpeech />
-      ) : (
-        <TextToSign />
-      )}
+      {translationDirection === "signToText" ? <SigntoText /> : <TextToSign />}
     </div>
   );
 };
