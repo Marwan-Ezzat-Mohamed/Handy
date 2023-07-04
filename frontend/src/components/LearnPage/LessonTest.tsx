@@ -1,13 +1,23 @@
-import PlayCircleIcon from "@mui/icons-material/PlayCircle";
-import { IconButton } from "@mui/material";
-import { useNavigate } from "react-router-dom";
-import { MediapipeCamera } from "../MediapipeCamera";
+import useGlobalStore from "../../stores/zustand";
 import Camera from "../TranslatePage/Camera";
-import { useEffect, useRef, useState } from "react";
-function LessonTest() {
-  const startRef = useRef<boolean>(false);
+import { useRef, useState } from "react";
+function LessonTest({ word, lesson }: { word: string; lesson: string }) {
+  const startRef = useRef<boolean>(true);
+  const updateLessonProgress = useGlobalStore(
+    (state) => state.updateLessonProgress
+  );
 
   const [prediction, setPrediction] = useState<Array<string>>([]);
+
+  console.log(prediction);
+
+  const checkSign = () => {
+    if (prediction.includes(word)) {
+      updateLessonProgress(lesson, word);
+      return true;
+    }
+    return false;
+  };
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -17,13 +27,17 @@ function LessonTest() {
         setLoading={() => {}}
       />
       {prediction.length ? (
-        prediction.includes("teacher") ? (
-          <div className="flex justify-center">You are correct</div>
+        checkSign() ? (
+          <div className="flex justify-center text-2xl font-bold text-green-500">
+            You are correct
+          </div>
         ) : (
-          <div className="flex justify-center">You are wrong</div>
+          <div className="flex justify-center text-2xl font-bold text-red-600">
+            You are wrong
+          </div>
         )
       ) : (
-        <div className="flex justify-center">No prediction</div>
+        <div className="flex justify-center">Start making the sign</div>
       )}
     </div>
   );

@@ -8,23 +8,23 @@ function SigntoSpeech() {
   const startRef = React.useRef(false);
 
   return (
-    <div className=" h-full w-full flex-grow  justify-center sm:block md:flex">
-      <div className="flex h-1/2 max-w-2xl flex-col md:w-1/2">
+    <div className="grid h-full grid-cols-1 grid-rows-2 md:grid-cols-2 md:grid-rows-1">
+      <div>
         <Camera
           startRef={startRef}
           setPrediction={setPrediction}
           setLoading={setLoading}
         />
       </div>
-      <div className="h-1/2 max-w-2xl md:w-1/2">
+      <div className="">
         <Prediction
           startRef={startRef}
           prediction={prediction}
           loading={loading}
         />
       </div>
-      {/* <VideoInput width={400} height={300} /> */}
     </div>
   );
 }
+
 export default SigntoSpeech;

@@ -5,22 +5,19 @@ import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import SignLanguageIcon from "@mui/icons-material/SignLanguage";
 import TextFormatIcon from "@mui/icons-material/TextFormat";
 import { IconButton, InputAdornment } from "@mui/material";
-function FormatBar() {
-  //get current location
-  //if location is / then set format to sign
-  //if location is /texttosign then set format to text
-  const location = useLocation();
-  const [format, setFormat] = useState<string>(
-    location.pathname === "/texttosign" ? "Text" : "Sign"
-  );
-  const navigate = useNavigate();
+interface Props {
+  setTranslationDirection: React.Dispatch<
+    React.SetStateAction<"signToText" | "textToSign">
+  >;
+  translationDirection: "signToText" | "textToSign";
+}
+function FormatBar({ setTranslationDirection, translationDirection }: Props) {
   const switchHandler = () => {
-    if (format === "Sign") {
-      setFormat("Text");
-      navigate("/texttosign");
-    } else {
-      setFormat("Sign");
-      navigate("/");
+    if (translationDirection === "signToText") {
+      setTranslationDirection("textToSign");
+    }
+    if (translationDirection === "textToSign") {
+      setTranslationDirection("signToText");
     }
   };
 
@@ -71,8 +68,8 @@ function FormatBar() {
     />,
   ];
 
-  const first = format === "Sign" ? 0 : 1;
-  const second = format === "Sign" ? 1 : 0;
+  const first = translationDirection === "signToText" ? 0 : 1;
+  const second = translationDirection === "signToText" ? 1 : 0;
 
   return (
     <div className="flex w-full flex-row justify-center px-2 py-5">

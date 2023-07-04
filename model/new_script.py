@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 
@@ -64,5 +65,25 @@ def delete_videos():
     print('done')
 
 
+# Example usage
+input_file_path = 'Handy.json'
+filter_file_path = 'label_map.json'
+output_file_path = 'filtered.json'
+
+
+def create_filtered_json(input_file_path, filter_file_path, output_file_path):
+    with open(input_file_path, 'r') as input_file, open(filter_file_path, 'r') as filter_file:
+        input_data = json.load(input_file)
+        filter_data = json.load(filter_file)
+        print(filter_data.values())
+        filtered_data = {}
+        for key in input_data:
+            filtered_data[key] = [word for word in input_data[key]
+                                  if word in filter_data.values()]
+        with open(output_file_path, 'w') as output_file:
+            json.dump(filtered_data, output_file)
+
+
 if __name__ == '__main__':
-    delete_videos()
+    # delete_videos()
+    create_filtered_json(input_file_path, filter_file_path, output_file_path)

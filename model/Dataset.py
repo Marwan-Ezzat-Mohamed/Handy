@@ -13,8 +13,9 @@ import json
 import istarmap
 import concurrent.futures
 from main import main, FRAMES_PER_VIDEO
-import pandas as pd
+# import pandas as pd
 from helper import split_data, VIDEO_NAME_SEPARATOR
+
 
 class Dataset:
 
@@ -25,6 +26,7 @@ class Dataset:
     rotate_times = 0,
     aspect_ratio_times = 0,
     non_moving_frames_threshold = 0
+    accumulative_augmentation = True
 
     def __init__(
             self,
@@ -35,6 +37,7 @@ class Dataset:
             aspect_ratio_times=0,
             non_moving_frames_threshold=0,
             save_features_only=True,
+            accumulative_augmentation=True
     ):
         if resize_values is not None:
             Dataset.resize_values = resize_values
@@ -45,6 +48,7 @@ class Dataset:
         self.dataset_folder_path = dataset_folder_path
         self.num_frames_per_video = num_frames_per_video
         self.all_videos_folder_name = 'all_vids'
+        self.accumulative_augmentation = accumulative_augmentation
         # self.all_vids_augmented_folder_name = 'all_vids_augmented'
 
         self.save_features_only = save_features_only
@@ -61,16 +65,16 @@ class Dataset:
         if not self.save_features_only:
             self._save_videos_features()
 
-    # def _rename_videos(self) -> None:
-    #     vids: List[str] = Dataset.get_all_vids_paths(
-    #         self.all_videos_folder_name)
-    #     Dataset.rename_videos(vids)
+    def _rename_videos(self) -> None:
+        vids: List[str] = Dataset.get_all_vids_paths(
+            self.all_videos_folder_name)
+        Dataset.rename_videos(vids)
 
-    # @staticmethod
-    # def rename_videos(vids):
-    #     for vid in vids:
-    #         # rename from all_vids/action/video.mp4 to all_vids/action/video$separator$.mp4
-    #         os.rename(vid, vid.replace('.mp4', VIDEO_NAME_SEPARATOR + '.mp4'))
+    @staticmethod
+    def rename_videos(vids):
+        for vid in vids:
+            # rename from all_vids/action/video.mp4 to all_vids/action/video$separator$.mp4
+            os.rename(vid, vid.replace('.mp4', VIDEO_NAME_SEPARATOR + '.mp4'))
 
     def _put_all_videos_in_one_folder(self) -> None:
         if not os.path.exists(self.all_videos_folder_name):
@@ -109,7 +113,8 @@ class Dataset:
             vids, self.num_frames_per_video, self.all_videos_folder_name)
 
     def _increase_videos_by_data_augmentation(self) -> None:
-        Dataset.increase_videos_by_data_augmentation('Train_unaugmented', 'Train', self.save_features_only)
+        Dataset.increase_videos_by_data_augmentation(
+            'Train_unaugmented', 'Train', self.save_features_only, self.accumulative_augmentation)
         shutil.rmtree('Train_unaugmented')
 
     # def _save_videos_per_actions_json(self) -> None:
@@ -119,13 +124,13 @@ class Dataset:
     def _save_videos_features(self) -> None:
         vidsTRAIN = Dataset.get_all_vids_paths('Train')
         Dataset.save_videos_features(vidsTRAIN, 'MP_Train')
-        
+
         vidsTEST = Dataset.get_all_vids_paths('Test')
         Dataset.save_videos_features(vidsTEST, 'MP_Test')
-        
+
         vidsVAL = Dataset.get_all_vids_paths('Val')
         Dataset.save_videos_features(vidsVAL, 'MP_Val')
-        
+
         shutil.rmtree('Train')
         shutil.rmtree('Test')
         shutil.rmtree('Val')
@@ -514,7 +519,7 @@ class Dataset:
         cv2.destroyAllWindows()
 
     @staticmethod
-    def increase_videos_by_data_augmentation(folder_path, output_folder, save_features_only=False):
+    def increase_videos_by_data_augmentation(folder_path, output_folder, save_features_only=False, accumulative_augmentation=True):
         all_pbar = tqdm(total=len(os.listdir(folder_path)),
                         desc='Increasing videos by data augmentation')
 
@@ -533,7 +538,9 @@ class Dataset:
                     for _ in p.istarmap(Dataset.change_video_aspect_ratio, inputs):
                         pbar.update()
 
-            vids = Dataset.get_all_vids_paths(output_folder + os.sep + action)
+            if accumulative_augmentation:
+                vids = Dataset.get_all_vids_paths(
+                    output_folder + os.sep + action)
             inputs = [(vid, resize_value, output_folder)
                       for resize_value in Dataset.resize_values for vid in vids]
             with multiprocessing.Pool(processes=Dataset.num_cpu_for_multiprocessing) as p:
@@ -541,7 +548,9 @@ class Dataset:
                     for _ in p.istarmap(Dataset.resize_video, inputs):
                         pbar.update()
 
-            vids = Dataset.get_all_vids_paths(output_folder + os.sep + action)
+            if accumulative_augmentation:
+                vids = Dataset.get_all_vids_paths(
+                    output_folder + os.sep + action)
             inputs = [(vid, i, output_folder)
                       for vid in vids for i in range(Dataset.rotate_times)]
             with multiprocessing.Pool(processes=Dataset.num_cpu_for_multiprocessing) as p:
@@ -727,7 +736,8 @@ class Dataset:
 
 
 def reset_state():
-    folders_to_remove = ['MP_Test', 'MP_Val', 'MP_Train', 'all_vids', 'Test', 'Val', 'Train']
+    folders_to_remove = ['MP_Test', 'MP_Val',
+                         'MP_Train', 'all_vids', 'Test', 'Val', 'Train']
     files_to_remove = ['x_train.npy', 'y_train.npy', 'x_test.npy',
                        'y_test.npy', 'x_val.npy', 'y_val.npy']
 
@@ -743,31 +753,32 @@ def reset_state():
     shutil.copytree('original_vids', 'all_vids')
 
 
-def append_results_to_excel(results, excel_path='results.xlsx'):
-    if not os.path.exists(excel_path):
-        df = pd.DataFrame(columns=['resize_values', 'rotate_times', 'aspect_ratio_times',
-                                   'accuracy', 'max_accuracy', 'average_accuracy', 'non_moving_frames_threshold', 'num_of_frames'])
-        df.to_excel(excel_path, index=False)
+# def append_results_to_excel(results, excel_path='results.xlsx'):
+#     if not os.path.exists(excel_path):
+#         df = pd.DataFrame(columns=['resize_values', 'rotate_times', 'aspect_ratio_times',
+#                                    'accuracy', 'max_accuracy', 'average_accuracy', 'non_moving_frames_threshold', 'num_of_frames', 'accumulative_augmentation'])
+#         df.to_excel(excel_path, index=False)
 
-    df = pd.read_excel(excel_path)
-    df = df.append(results, ignore_index=True)
-    df.to_excel(excel_path, index=False)
+#     df = pd.read_excel(excel_path)
+#     df = df.append(results, ignore_index=True)
+#     df.to_excel(excel_path, index=False)
 
 
 if __name__ == '__main__':
+    possible_aspect_ratio_times = [1]
     possible_resize_values = [
         # [1.5, 0.5, 1.8, 1.2],
         # [1.5, 0.5, 1.8],
-        # [1.5, 0.5],
-        [1.5]
+        # [1.5],
+        [1.5, 0.5],
         # [],
 
     ]
-    possible_rotate_times = [1]
-    possible_aspect_ratio_times = [1]
+    possible_rotate_times = [2]
 
     possible_non_moving_frames_threshold = [0.08]
     possible_num_of_frames = [30]
+    accumulative_augmentations = [False]
 
     # reset_state()
     # d = Dataset(resize_values=[1.5],
@@ -796,27 +807,50 @@ if __name__ == '__main__':
             for aspect_ratio_times in possible_aspect_ratio_times:
                 for non_moving_frames_threshold in possible_non_moving_frames_threshold:
                     for num_of_frames in possible_num_of_frames:
+                        for accumulative_augmentation in accumulative_augmentations:
+                            # # read and parse the excel file to skip the already done experiments
+                            # if os.path.exists('results.xlsx'):
+                            #     # check if all the parameters are the same
+                            #     df = pd.read_excel('results.xlsx')
+                            #     df = df.loc[(df['resize_values'] == str(resize_values)) &
+                            #                 (df['rotate_times'] == rotate_times) &
+                            #                 (df['aspect_ratio_times'] == aspect_ratio_times) &
+                            #                 (df['non_moving_frames_threshold'] == non_moving_frames_threshold) &
+                            #                 (df['num_of_frames'] == num_of_frames) &
+                            #                 (df['accumulative_augmentation'] == accumulative_augmentation)]
 
-                        reset_state()
-                        d = Dataset(resize_values=resize_values,
-                                    rotate_times=rotate_times,
-                                    aspect_ratio_times=aspect_ratio_times,
-                                    non_moving_frames_threshold=non_moving_frames_threshold,
-                                    save_features_only=False,
-                                    )
-                        d.process()
-                        # wait for cpu cores to finish
+                            #     if len(df) > 0:
+                            #         print(
+                            #             f'Skipping {resize_values}, {rotate_times}, {aspect_ratio_times}, {non_moving_frames_threshold}, {num_of_frames}, {accumulative_augmentation}')
+                            #         continue
 
-                        #split_data()
-                        FRAMES_PER_VIDEO = num_of_frames
-                        results = {}
-                        accuracy_data, max_accuracy, average_accuracy = main()
-                        results['accuracy'] = accuracy_data
-                        results['max_accuracy'] = max_accuracy
-                        results['average_accuracy'] = average_accuracy
-                        results['resize_values'] = resize_values
-                        results['rotate_times'] = rotate_times
-                        results['aspect_ratio_times'] = aspect_ratio_times
-                        results['non_moving_frames_threshold'] = non_moving_frames_threshold
-                        results['num_of_frames'] = num_of_frames
-                        append_results_to_excel(results)
+                            reset_state()
+                            d = Dataset(resize_values=resize_values,
+                                        rotate_times=rotate_times,
+                                        aspect_ratio_times=aspect_ratio_times,
+                                        non_moving_frames_threshold=non_moving_frames_threshold,
+                                        save_features_only=False,
+                                        num_frames_per_video=num_of_frames,
+                                        accumulative_augmentation=accumulative_augmentation
+                                        )
+                            d.process()
+                            # wait for cpu cores to finish
+
+                            split_data()
+                            FRAMES_PER_VIDEO = num_of_frames
+                            results = {}
+                            accuracy_data, max_accuracy, average_accuracy = main()
+                            results['accuracy'] = accuracy_data
+                            results['max_accuracy'] = max_accuracy
+                            results['average_accuracy'] = average_accuracy
+                            results['resize_values'] = resize_values
+                            results['rotate_times'] = rotate_times
+                            results['aspect_ratio_times'] = aspect_ratio_times
+                            results['non_moving_frames_threshold'] = non_moving_frames_threshold
+                            results['num_of_frames'] = num_of_frames
+                            results['accumulative_augmentation'] = accumulative_augmentation
+                            # save to text file
+                            with open('results.txt', 'a') as f:
+                                f.write(str(results) + '\n')
+
+                            # append_results_to_excel(results)

@@ -14,7 +14,7 @@ function LessonDetails({ lesson }: LessonDetailsProps) {
   const navigate = useNavigate();
   return (
     <div
-      onClick={() => navigate(`/lesson/${lesson}`)}
+      onClick={() => navigate(`lesson/${lesson}`)}
       className="mx-auto my-5 flex h-12 w-3/4 cursor-pointer items-center justify-between rounded-lg bg-primary text-lg font-semibold text-white md:w-1/2"
     >
       <div className="ml-5">{lesson}</div>

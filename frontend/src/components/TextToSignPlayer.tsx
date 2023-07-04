@@ -42,19 +42,9 @@ const TextToSignPlayer = ({ text }: TextToSignPlayerProps) => {
     );
 
   return (
-    <div className="flex w-full flex-col items-center">
-      <div
-        className="aspect-video  rounded-xl text-white"
-        style={{
-          height: "clamp(150px, 90%, 320px)",
-        }}
-      >
+    <div className="flex  flex-grow flex-col items-center">
+      <div className="flex aspect-video flex-grow flex-col rounded-xl text-white">
         <video
-          style={{
-            height: "100%",
-            width: "100%",
-            maxHeight: "270px",
-          }}
           ref={videoRef}
           src={videoUrl}
           //   className="aspect-video rounded-xl"
@@ -63,26 +53,28 @@ const TextToSignPlayer = ({ text }: TextToSignPlayerProps) => {
         />
       </div>
 
-      <div className="py-2 ">
-        <input
-          type="range"
-          min="0.5"
-          max="2.5"
-          value={playbackSpeed}
-          onChange={(e) => {
-            setPlaybackSpeed(parseFloat(e.target.value));
-          }}
-          className="range range-info"
-          step="0.5"
-        />
-        <div className="flex justify-between  space-x-4 px-2 text-xs">
-          <label className="text-xl"> 0.5x</label>
-          <label className="text-xl"> 1x</label>
-          <label className="text-xl"> 1.5x</label>
-          <label className="text-xl"> 2x</label>
-          <label className="text-xl"> 2.5x</label>
+      {!!text.length && !loading && (
+        <div className="py-2 ">
+          <input
+            type="range"
+            min="0.5"
+            max="2.5"
+            value={playbackSpeed}
+            onChange={(e) => {
+              setPlaybackSpeed(parseFloat(e.target.value));
+            }}
+            className="range range-info"
+            step="0.5"
+          />
+          <div className="flex justify-between  space-x-4 px-2 text-xs">
+            <label className="text-xl"> 0.5x</label>
+            <label className="text-xl"> 1x</label>
+            <label className="text-xl"> 1.5x</label>
+            <label className="text-xl"> 2x</label>
+            <label className="text-xl"> 2.5x</label>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

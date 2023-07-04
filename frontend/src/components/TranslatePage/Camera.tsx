@@ -26,7 +26,7 @@ const Camera = ({ startRef, setPrediction, setLoading }: CameraProps) => {
       //reset the prediction
       //setPrediction([]);
     }
-    if (resultsRef.current.length >= FRAMES_FOR_PREDICTION) {
+    if (resultsRef.current.length >= FRAMES_FOR_PREDICTION * 1.2) {
       predictFrames(structuredClone(resultsRef.current));
       resultsRef.current = resultsRef.current.slice(FRAMES_FOR_PREDICTION);
     }
@@ -46,7 +46,7 @@ const Camera = ({ startRef, setPrediction, setLoading }: CameraProps) => {
     });
   };
   return (
-    <div className="flex w-full flex-grow flex-col p-2 text-center">
+    <div className="flex h-full flex-col">
       <MediapipeCamera onResult={onResults} />
     </div>
   );

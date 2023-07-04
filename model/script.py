@@ -4,7 +4,7 @@ import cv2
 from moviepy.video.io.VideoFileClip import VideoFileClip
 import shutil
 from tqdm import tqdm
-
+from mediapipeHelper import *
 import multiprocessing
 from vidaug import augmentors as va
 
@@ -105,23 +105,16 @@ def make_keypoints_json(videos_paths):
                 ret, frame = cap.read()
                 if ret:
                     image, results = mediapipe_detection(frame, holistic)
-                    # draw_landmarks(image, results)
-                    # cv2.imshow('OpenCV Feed', image)
-                    # # sleep for 1 second
-                    # cv2.waitKey(100)
                     action_keypoints.append(extract_keypoints_dict(results))
                 else:
                     break
             cap.release()
-            # show the video
-
-            action = video_path.split(".")[0].split("\\")[-1]
-            action = action.split("-")[0].lower()
-
-            keypoints_map[action] = action_keypoints
-
-    with open(os.path.join('keypoints_reshaped' + '.json'), 'w') as f:
-        json.dump(keypoints_map, f)
+            # create a folder to store the keypoints
+            if not os.path.exists('keypoints'):
+                os.mkdir('keypoints')
+            # save the keypoints map to a json file with the same name as the video in a folder called keypoints
+            with open(os.path.join('keypoints', video_path.split(os.sep)[-1].split('.')[0] + '.json'), 'w') as f:
+                json.dump(action_keypoints, f)
 
 
 def move_percentage_of_data(percent):
@@ -187,8 +180,58 @@ def put_all_videos_in_one_folder(src, dst) -> None:
 
 
 if __name__ == '__main__':
-    put_all_videos_in_one_folder(
-        src='MP_DATA_NEW_3', dst='MP_DATA_NEW')
+    # put_all_videos_in_one_folder(
+    #     src='MP_DATA_NEW_3', dst='MP_DATA_NEW')
+    make_keypoints_json(get_all_vids_paths('videos'))
+    # all_videos_path = os.path.join('/root/Desktop/old/DATASETS')
+    # # we have a folder each dataset
+    # # we need to get one video for each action from some dataset based on the priority of the dataset
+    # # if the action exists in the first dataset then we don't check the other datasets
+    # # if the action doesn't exist in the first dataset then we check the second dataset and so on
+    # dataset_priority = [
+    #     'ASL_Videos',
+    #     'ASLLVD_DATASET_CUT',
+    #     "WLASL2000_CUT",
+    #     "MSASL_train_CUT",
+    #     "MSASL_val_CUT",
+    #     "MSASL_test_CUT",
+    # ]
+
+    # # create a folder to store the unique videos
+    # if not os.path.exists('videos'):
+    #     os.mkdir('videos')
+
+    # actions = os.listdir('original_vids')
+    # for action in actions:
+    #     # check where the action exists
+    #     for dataset in dataset_priority:
+    #         # check if the action exists in the dataset
+    #         if os.path.exists(os.path.join(all_videos_path, dataset, action)):
+    #             # get the videos of the action
+    #             videos = os.listdir(os.path.join(
+    #                 all_videos_path, dataset, action))
+    #             # get the highest resolution video and not corrupted
+    #             longest_duration_video = None
+    #             longest_duration = 0
+    #             for video in videos:
+    #                 try:
+    #                     duration = VideoFileClip(os.path.join(
+    #                         all_videos_path, dataset, action, video)).duration
+    #                     if duration > longest_duration:
+    #                         longest_duration = duration
+    #                         longest_duration_video = video
+    #                 except Exception as e:
+    #                     print(f"Error reading video {video}: {e}")
+    #                     continue
+
+    #             if longest_duration_video is not None:
+    #                 print(f"Copying {longest_duration_video} to {action}")
+    #                 # copy the video to the unique_videos folder
+    #                 shutil.copy(os.path.join(all_videos_path, dataset, action, longest_duration_video),
+    #                             os.path.join('videos', action + '.mp4'))
+    #             else:
+    #                 print(f"No valid videos found for {action}")
+    #             break
 
     # move_percentage_of_data(30)
 
