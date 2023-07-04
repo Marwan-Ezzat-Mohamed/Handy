@@ -1,6 +1,6 @@
 import React from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import SignToSpeech from "./components/SignToSpeech";
+import SignToSpeech from "./components/SignToText";
 import TextToSign from "./components/TextToSign";
 import FormatBar from "./components/TranslatePage/FormatBar";
 import LessonsList from "./components/LearnPage/LessonsList";

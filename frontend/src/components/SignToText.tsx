@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import Camera from "./TranslatePage/Camera";
 import Prediction from "./TranslatePage/Prediction";
 
-function SigntoSpeech() {
+function SigntoText() {
   const [prediction, setPrediction] = useState<Array<string>>([]);
   const [loading, setLoading] = useState(false);
   const startRef = React.useRef(false);
@@ -27,4 +27,4 @@ function SigntoSpeech() {
     </div>
   );
 }
-export default SigntoSpeech;
+export default SigntoText;
